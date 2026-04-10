@@ -151,8 +151,9 @@ def _register_defaults() -> None:
     Imports happen lazily inside this function so a circular import in any
     one collector module doesn't break the package import.
     """
-    # Phase 1 entry — YouTubeChannelCollector — lands in Task 7. Until then,
-    # COLLECTORS stays empty and the scheduler simply has no jobs to add.
+    from .youtube.collector import YouTubeChannelCollector
+
+    COLLECTORS["youtube_channel"] = YouTubeChannelCollector()
 
 
 _register_defaults()
