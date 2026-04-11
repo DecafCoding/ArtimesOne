@@ -128,10 +128,12 @@ def _seed_item(
         published_at = now
     if url is None:
         url = f"https://www.youtube.com/watch?v={external_id}"
-    metadata = json.dumps({
-        "duration_seconds": duration_seconds,
-        "thumbnail_url": thumbnail_url,
-    })
+    metadata = json.dumps(
+        {
+            "duration_seconds": duration_seconds,
+            "thumbnail_url": thumbnail_url,
+        }
+    )
     cursor = conn.execute(
         """
         INSERT INTO items

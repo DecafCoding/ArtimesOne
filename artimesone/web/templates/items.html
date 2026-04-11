@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Items — ArtimesOne{% endblock %}
+{% block content %}
+  <h1>Items</h1>
+
+  <input type="search" name="q" placeholder="Search items..."
+         value="{{ q }}"
+         hx-get="/items/search"
+         hx-trigger="keyup changed delay:300ms"
+         hx-target="#results"
+         hx-swap="innerHTML">
+
+  <div id="results">
+    {% include "items_results.html" %}
+  </div>
+{% endblock %}

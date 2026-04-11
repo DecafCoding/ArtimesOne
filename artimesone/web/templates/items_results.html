@@ -1,0 +1,52 @@
+{# HTMX partial — no extends, swapped into #results on /items #}
+
+{% if not items %}
+  <p>No items found.</p>
+{% else %}
+  {% for item in items %}
+    <div class="item-card">
+      {% if item.thumbnail_url %}
+        <img class="item-thumb" src="{{ item.thumbnail_url }}" alt="" loading="lazy">
+      {% else %}
+        <div class="item-thumb-placeholder"></div>
+      {% endif %}
+
+      <div class="item-body">
+        <h3>
+          {% if item.status == 'skipped_too_long' %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+          {% else %}
+            <a href="/items/{{ item.id }}">{{ item.title }}</a>
+          {% endif %}
+        </h3>
+
+        <div class="item-meta">
+          <span>{{ item.source_name }}</span>
+          {% if item.duration_seconds %}
+            <span>{{ item.duration_seconds | format_duration }}</span>
+          {% endif %}
+          {% if item.published_at %}
+            <span>{{ item.published_at | relative_date }}</span>
+          {% endif %}
+          <span class="badge-status badge-{{ item.status }}">{{ item.status | replace('_', ' ') }}</span>
+        </div>
+
+        {% if item.search_snippet %}
+          <p class="item-summary">{{ item.search_snippet | safe }}</p>
+        {% elif item.status == 'skipped_too_long' %}
+          <span class="badge-too-long">Too long</span>
+        {% elif item.summary %}
+          <p class="item-summary">{{ item.summary | first_paragraph }}</p>
+        {% endif %}
+
+        {% if item.topics %}
+          <div class="topic-chips">
+            {% for tag in item.topics %}
+              <a class="topic-chip" href="/topics/{{ tag.slug }}">{{ tag.name }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
