@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }} — ArtimesOne{% endblock %}
+{% block content %}
+
+  {# Thumbnail #}
+  {% if item.thumbnail_url %}
+    <img src="{{ item.thumbnail_url }}" alt="" loading="lazy" style="max-width:100%; border-radius:4px; margin-bottom:1rem;">
+  {% endif %}
+
+  <h1>{{ item.title }}</h1>
+
+  {# Metadata line #}
+  <div class="item-meta">
+    <span>{{ item.source_name }}</span>
+    {% if item.duration_seconds %}
+      <span>{{ item.duration_seconds | format_duration }}</span>
+    {% endif %}
+    {% if item.published_at %}
+      <span>{{ item.published_at | relative_date }}</span>
+    {% endif %}
+    <span class="badge-status badge-{{ item.status }}">{{ item.status | replace('_', ' ') }}</span>
+  </div>
+
+  {# Topic chips #}
+  {% if tags %}
+    <div class="topic-chips" style="margin:0.75rem 0;">
+      {% for tag in tags %}
+        <a class="topic-chip" href="/topics/{{ tag.slug }}">{{ tag.name }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# YouTube link #}
+  {% if item.url %}
+    <p><a href="{{ item.url }}" target="_blank" rel="noopener" role="button" class="secondary">Watch on YouTube</a></p>
+  {% endif %}
+
+  {# Summary / status messaging #}
+  {% if item.status == 'skipped_too_long' %}
+    <article>
+      <p><span class="badge-too-long">Too long</span>
+      {% if item.duration_seconds %} — {{ item.duration_seconds | format_duration }}{% endif %}</p>
+      <p>This video exceeded the duration limit and was not processed.</p>
+    </article>
+  {% elif item.status == 'discovered' %}
+    <article><p><em>Awaiting transcript...</em></p></article>
+  {% elif item.status == 'transcribed' and not summary_text %}
+    <article><p><em>Awaiting summary...</em></p></article>
+  {% elif summary_text %}
+    <article>
+      <h2>Summary</h2>
+      {{ summary_text | replace('\n\n', '</p><p>') | safe }}
+    </article>
+  {% endif %}
+
+  {# Collapsible transcript #}
+  {% if transcript_text %}
+    <details>
+      <summary>Show transcript</summary>
+      <div style="white-space:pre-wrap; font-size:0.9rem; line-height:1.6; margin-top:0.5rem;">{{ transcript_text }}</div>
+    </details>
+  {% endif %}
+
+{% endblock %}

@@ -64,19 +64,21 @@ def _query_recent_items(
             (row["id"],),
         ).fetchall()
 
-        items.append({
-            "id": row["id"],
-            "external_id": row["external_id"],
-            "title": row["title"],
-            "url": row["url"],
-            "published_at": row["published_at"],
-            "status": row["status"],
-            "source_name": row["source_name"],
-            "duration_seconds": metadata.get("duration_seconds"),
-            "thumbnail_url": metadata.get("thumbnail_url"),
-            "summary": summary_text,
-            "topics": [{"slug": t["slug"], "name": t["name"]} for t in tag_rows],
-        })
+        items.append(
+            {
+                "id": row["id"],
+                "external_id": row["external_id"],
+                "title": row["title"],
+                "url": row["url"],
+                "published_at": row["published_at"],
+                "status": row["status"],
+                "source_name": row["source_name"],
+                "duration_seconds": metadata.get("duration_seconds"),
+                "thumbnail_url": metadata.get("thumbnail_url"),
+                "summary": summary_text,
+                "topics": [{"slug": t["slug"], "name": t["name"]} for t in tag_rows],
+            }
+        )
 
     return items
 
@@ -104,7 +106,7 @@ def _read_summary_text(content_dir: Path, summary_path: str | None) -> str | Non
     if text.startswith("---"):
         end = text.find("---", 3)
         if end != -1:
-            text = text[end + 3:]
+            text = text[end + 3 :]
     return text.strip() or None
 
 
