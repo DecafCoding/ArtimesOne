@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Collection Runs — ArtimesOne{% endblock %}
+{% block content %}
+
+  <h1>Collection Runs</h1>
+
+  {% if runs %}
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Started</th>
+        <th>Completed</th>
+        <th>Status</th>
+        <th>Discovered</th>
+        <th>Processed</th>
+        <th>Error</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for run in runs %}
+      <tr>
+        <td><a href="/sources/{{ run.source_id }}">{{ run.source_name }}</a></td>
+        <td>{{ run.started_at | relative_date }}</td>
+        <td>{{ run.completed_at | relative_date if run.completed_at else "—" }}</td>
+        <td>
+          <span class="badge-run-{{ run.status }}">{{ run.status }}</span>
+        </td>
+        <td>{{ run.items_discovered }}</td>
+        <td>{{ run.items_processed }}</td>
+        <td>{{ run.error_message or "" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No collection runs yet. Add a source and wait for the scheduler to run.</p>
+  {% endif %}
+
+{% endblock %}

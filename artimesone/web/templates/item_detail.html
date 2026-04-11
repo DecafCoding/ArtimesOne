@@ -11,7 +11,7 @@
 
   {# Metadata line #}
   <div class="item-meta">
-    <span>{{ item.source_name }}</span>
+    <span><a href="/sources/{{ item.source_id }}">{{ item.source_name }}</a></span>
     {% if item.duration_seconds %}
       <span>{{ item.duration_seconds | format_duration }}</span>
     {% endif %}

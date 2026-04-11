@@ -67,6 +67,7 @@ def _enrich_item_row(
         "url": row["url"],
         "published_at": row["published_at"],
         "status": row["status"],
+        "source_id": row["source_id"],
         "source_name": row["source_name"],
         "duration_seconds": metadata.get("duration_seconds"),
         "thumbnail_url": metadata.get("thumbnail_url"),
@@ -145,7 +146,7 @@ def _query_items(
         f"""
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                i.status, i.metadata, i.summary_path, i.created_at,
-               s.name AS source_name
+               s.id AS source_id, s.name AS source_name
         FROM items i
         JOIN sources s ON s.id = i.source_id
         {where}
@@ -194,7 +195,7 @@ def _fts_search(conn: sqlite3.Connection, query: str) -> list[dict[str, Any]]:
             """
             SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                    i.status, i.metadata, i.summary_path, i.created_at,
-                   s.name AS source_name,
+                   s.id AS source_id, s.name AS source_name,
                    snippet(items_fts, 1, '<mark>', '</mark>', '...', 30) AS search_snippet
             FROM items_fts
             JOIN items i ON i.id = items_fts.rowid
@@ -232,7 +233,7 @@ async def item_detail(
     """Render the item detail page."""
     row = conn.execute(
         """
-        SELECT i.*, s.name AS source_name
+        SELECT i.*, s.id AS source_id, s.name AS source_name
         FROM items i
         JOIN sources s ON s.id = i.source_id
         WHERE i.id = ?
@@ -256,6 +257,7 @@ async def item_detail(
         "url": row["url"],
         "published_at": row["published_at"],
         "status": row["status"],
+        "source_id": row["source_id"],
         "source_name": row["source_name"],
         "duration_seconds": metadata.get("duration_seconds"),
         "thumbnail_url": metadata.get("thumbnail_url"),

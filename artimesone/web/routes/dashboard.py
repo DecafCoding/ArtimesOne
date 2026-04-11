@@ -38,7 +38,7 @@ def _query_recent_items(
         f"""
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                i.status, i.metadata, i.summary_path, i.created_at,
-               s.name AS source_name
+               s.id AS source_id, s.name AS source_name
         FROM items i
         JOIN sources s ON s.id = i.source_id
         WHERE i.created_at >= ?
@@ -72,6 +72,7 @@ def _query_recent_items(
                 "url": row["url"],
                 "published_at": row["published_at"],
                 "status": row["status"],
+                "source_id": row["source_id"],
                 "source_name": row["source_name"],
                 "duration_seconds": metadata.get("duration_seconds"),
                 "thumbnail_url": metadata.get("thumbnail_url"),
