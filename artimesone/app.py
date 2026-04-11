@@ -21,6 +21,7 @@ from .config import Settings
 from .db import get_connection
 from .migrations import apply_migrations
 from .scheduler import build_scheduler, reload_jobs
+from .web.filters import register_filters
 
 
 @asynccontextmanager
@@ -74,6 +75,7 @@ def create_app() -> FastAPI:
     # Templates.
     templates_dir = Path(__file__).parent / "web" / "templates"
     app.state.templates = Jinja2Templates(directory=templates_dir)
+    register_filters(app.state.templates.env)
 
     # Routers.
     from .web.routes.dashboard import router as dashboard_router
