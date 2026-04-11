@@ -4,21 +4,29 @@ ArtimesOne is a single-user personal AI assistant that collects content from sou
 you subscribe to (YouTube channels first, more to come), summarizes it, and lets you
 chat about the corpus through a web UI. Designed to run locally on your own machine.
 
-## What works today (Phases 1–3 in progress)
+## What works today (Phases 1–3 complete)
 
 - **Config** — pydantic-settings driven, graceful degradation with zero env vars
 - **SQLite schema** — full v1 schema with WAL mode, FTS5 search, hand-rolled migrations
 - **YouTube collector** — discovers new videos via the YouTube Data API, filters by duration, fetches transcripts via Apify, and records everything in the DB
 - **Summarization pipeline** — pydantic-ai agent turns transcripts into 1–2 paragraph prose summaries with 3–7 topic tags; summaries stored as markdown with YAML front matter
 - **Scheduler** — APScheduler 3.x runs the full discover → fetch → summarize pipeline per source on a cron schedule, with bounded auto-retry and graceful degradation
-- **Web UI** — topic-grouped dashboard showing recent items with thumbnails, summaries, topic chips, and YouTube links; `/sources` page for managing YouTube channel sources
+- **Web UI** — full read-only browsing surface:
+  - `/` — topic-grouped dashboard (last 7 days + "today" callout) with thumbnails, summaries, topic chips, and YouTube links
+  - `/items` — browse all items with FTS5 search (HTMX keyup)
+  - `/items/{id}` — item detail with summary, collapsible transcript, and metadata
+  - `/topics` — all topics sorted by last activity with item/rollup counts
+  - `/topics/{slug}` — topic detail with rollups above and items below
+  - `/sources` — add, enable, disable, and delete YouTube channel sources
+  - `/sources/{id}` — source detail with items list and collection run history
+  - `/runs` — collection run log with status, counts, and errors
 - **Entry point** — `python -m artimesone` starts FastAPI + scheduler in one process
 
 ## What's next
 
-- Phase 3 (continued): Item detail, topic browsing, search, collection run log
-- Phase 4: Chat agent with tool access over the corpus
+- Phase 4: Chat agent with tool access over the corpus + rollup creation
 - Phase 5: Telegram as a secondary chat surface
+- Phase 6: Polish, full test coverage, docs
 
 ## Installation
 
@@ -85,7 +93,7 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy artimesone
 
-# Tests (86 tests, all offline, no live API calls)
+# Tests (122 tests, all offline, no live API calls)
 uv run python -m pytest -v
 ```
 
@@ -106,7 +114,7 @@ artimesone/
   pipeline/            # Processing pipelines (summarize: transcript → summary + tags)
   web/
     filters.py         # Jinja2 template filters (duration, dates, text)
-    routes/            # FastAPI routers (dashboard, sources)
+    routes/            # FastAPI routers (dashboard, items, topics, sources, runs)
     templates/         # Jinja2 templates (Pico CSS + HTMX)
     static/            # Static assets (custom CSS)
 tests/                 # pytest + respx, zero live API calls
