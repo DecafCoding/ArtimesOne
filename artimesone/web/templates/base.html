@@ -5,14 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}ArtimesOne{% endblock %}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 <body>
   <header class="container">
     <nav>
-      <ul><li><strong>ArtimesOne</strong></li></ul>
+      <ul><li><strong><a href="/">ArtimesOne</a></strong></li></ul>
       <ul>
         <li><a href="/">Dashboard</a></li>
         <li><a href="/sources">Sources</a></li>
+        <li><a href="/topics">Topics</a></li>
+        <li><a href="/runs">Runs</a></li>
       </ul>
     </nav>
   </header>

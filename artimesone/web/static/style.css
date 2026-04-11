@@ -1,0 +1,136 @@
+/* ArtimesOne — custom styles layered on top of Pico CSS classless. */
+
+/* ── Topic group headings ─────────────────────────────────────────── */
+.topic-group h2 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  padding-bottom: 0.25rem;
+}
+
+.topic-group h2 a {
+  text-decoration: none;
+}
+
+/* ── Item cards ───────────────────────────────────────────────────── */
+.item-card {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.item-card:last-child {
+  border-bottom: none;
+}
+
+.item-thumb {
+  flex-shrink: 0;
+  width: 160px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--pico-muted-border-color);
+}
+
+.item-thumb-placeholder {
+  flex-shrink: 0;
+  width: 160px;
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+  background: var(--pico-muted-border-color);
+}
+
+.item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-body h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.item-body h3 a {
+  text-decoration: none;
+}
+
+.item-meta {
+  font-size: 0.85rem;
+  color: var(--pico-muted-color);
+  margin-bottom: 0.35rem;
+}
+
+.item-meta span + span::before {
+  content: " · ";
+}
+
+.item-summary {
+  font-size: 0.92rem;
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+
+/* ── Topic chips ──────────────────────────────────────────────────── */
+.topic-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+}
+
+.topic-chip {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 1rem;
+  background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.topic-chip:hover {
+  opacity: 0.85;
+}
+
+/* ── Badges ───────────────────────────────────────────────────────── */
+.badge-too-long {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  background: #e67e22;
+  color: #fff;
+}
+
+/* ── Section labels ───────────────────────────────────────────────── */
+.section-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pico-muted-color);
+  margin-bottom: 0.5rem;
+}
+
+/* ── External link icon ───────────────────────────────────────────── */
+.external-link::after {
+  content: " ↗";
+  font-size: 0.8em;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .item-card {
+    flex-direction: column;
+  }
+
+  .item-thumb,
+  .item-thumb-placeholder {
+    width: 100%;
+    max-width: 320px;
+  }
+}
