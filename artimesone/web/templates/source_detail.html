@@ -1,21 +1,14 @@
 {% extends "base.html" %}
-{% block title %}{{ tag.name }} — ArtimesOne{% endblock %}
+{% block title %}{{ source.name }} — ArtimesOne{% endblock %}
 {% block content %}
 
-  <h1>{{ tag.name }}</h1>
+  <h1>{{ source.name }}</h1>
 
-  {# ── Rollups section ─────────────────────────────────────────── #}
-  <h2>Rollups</h2>
-  {% if rollups %}
-    {% for rollup in rollups %}
-      <article>
-        <h3>{{ rollup.title }}</h3>
-        <small>{{ rollup.generated_by }} · {{ rollup.created_at | relative_date }}</small>
-      </article>
-    {% endfor %}
-  {% else %}
-    <p>No rollups on this topic yet.</p>
-  {% endif %}
+  <div class="item-meta" style="margin-bottom:1.5rem;">
+    <span>{{ source.type }}</span>
+    <span><code>{{ source.external_id }}</code></span>
+    <span>{{ "Enabled" if source.enabled else "Disabled" }}</span>
+  </div>
 
   {# ── Items section ───────────────────────────────────────────── #}
   <h2>Items</h2>
@@ -38,7 +31,6 @@
           </h3>
 
           <div class="item-meta">
-            <span><a href="/sources/{{ item.source_id }}">{{ item.source_name }}</a></span>
             {% if item.duration_seconds %}
               <span>{{ item.duration_seconds | format_duration }}</span>
             {% endif %}
@@ -72,7 +64,40 @@
       </div>
     {% endfor %}
   {% else %}
-    <p>No items on this topic yet.</p>
+    <p>No items collected yet.</p>
+  {% endif %}
+
+  {# ── Run history section ─────────────────────────────────────── #}
+  <h2>Run History</h2>
+  {% if runs %}
+  <table>
+    <thead>
+      <tr>
+        <th>Started</th>
+        <th>Completed</th>
+        <th>Status</th>
+        <th>Discovered</th>
+        <th>Processed</th>
+        <th>Error</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for run in runs %}
+      <tr>
+        <td>{{ run.started_at | relative_date }}</td>
+        <td>{{ run.completed_at | relative_date if run.completed_at else "—" }}</td>
+        <td>
+          <span class="badge-run-{{ run.status }}">{{ run.status }}</span>
+        </td>
+        <td>{{ run.items_discovered }}</td>
+        <td>{{ run.items_processed }}</td>
+        <td>{{ run.error_message or "" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No collection runs yet.</p>
   {% endif %}
 
 {% endblock %}

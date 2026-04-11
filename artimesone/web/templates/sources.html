@@ -20,7 +20,7 @@
     <tbody>
     {% for s in sources %}
       <tr>
-        <td>{{ s.name }}</td><td>{{ s.type }}</td><td><code>{{ s.external_id }}</code></td>
+        <td><a href="/sources/{{ s.id }}">{{ s.name }}</a></td><td>{{ s.type }}</td><td><code>{{ s.external_id }}</code></td>
         <td>{{ "yes" if s.enabled else "no" }}</td>
         <td>
           {% if s.enabled %}

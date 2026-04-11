@@ -106,6 +106,24 @@
   color: #fff;
 }
 
+/* ── Run status badges ────────────────────────────────────────────── */
+.badge-run-success,
+.badge-run-partial,
+.badge-run-error,
+.badge-run-running {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.badge-run-success { background: #27ae60; }
+.badge-run-partial { background: #e67e22; }
+.badge-run-error   { background: #c0392b; }
+.badge-run-running { background: #2980b9; }
+
 /* ── Section labels ───────────────────────────────────────────────── */
 .section-label {
   font-size: 0.85rem;
