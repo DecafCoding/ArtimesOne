@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Topics — ArtimesOne{% endblock %}
+{% block content %}
+  <h1>Topics</h1>
+
+  {% if topics %}
+    <table>
+      <thead>
+        <tr>
+          <th>Topic</th>
+          <th>Items</th>
+          <th>Rollups</th>
+          <th>Last active</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for topic in topics %}
+          <tr>
+            <td><a href="/topics/{{ topic.slug }}">{{ topic.name }}</a></td>
+            <td>{{ topic.item_count }}</td>
+            <td>{{ topic.rollup_count }}</td>
+            <td>{{ topic.last_touched | relative_date }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No topics yet.</p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ tag.name }} — ArtimesOne{% endblock %}
+{% block content %}
+
+  <h1>{{ tag.name }}</h1>
+
+  {# ── Rollups section ─────────────────────────────────────────── #}
+  <h2>Rollups</h2>
+  {% if rollups %}
+    {% for rollup in rollups %}
+      <article>
+        <h3>{{ rollup.title }}</h3>
+        <small>{{ rollup.generated_by }} · {{ rollup.created_at | relative_date }}</small>
+      </article>
+    {% endfor %}
+  {% else %}
+    <p>No rollups on this topic yet.</p>
+  {% endif %}
+
+  {# ── Items section ───────────────────────────────────────────── #}
+  <h2>Items</h2>
+  {% if items %}
+    {% for item in items %}
+      <div class="item-card">
+        {% if item.thumbnail_url %}
+          <img class="item-thumb" src="{{ item.thumbnail_url }}" alt="" loading="lazy">
+        {% else %}
+          <div class="item-thumb-placeholder"></div>
+        {% endif %}
+
+        <div class="item-body">
+          <h3>
+            {% if item.status == 'skipped_too_long' %}
+              <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+            {% else %}
+              <a href="/items/{{ item.id }}">{{ item.title }}</a>
+            {% endif %}
+          </h3>
+
+          <div class="item-meta">
+            <span>{{ item.source_name }}</span>
+            {% if item.duration_seconds %}
+              <span>{{ item.duration_seconds | format_duration }}</span>
+            {% endif %}
+            {% if item.published_at %}
+              <span>{{ item.published_at | relative_date }}</span>
+            {% endif %}
+          </div>
+
+          {% if item.status == 'skipped_too_long' %}
+            <span class="badge-too-long">Too long</span>
+          {% elif item.summary %}
+            <p class="item-summary">{{ item.summary | first_paragraph }}</p>
+          {% elif item.status == 'discovered' %}
+            <p><em>Awaiting transcript...</em></p>
+          {% elif item.status == 'transcribed' %}
+            <p><em>Awaiting summary...</em></p>
+          {% endif %}
+
+          {% if item.topics %}
+            <div class="topic-chips">
+              {% for topic in item.topics %}
+                <a class="topic-chip" href="/topics/{{ topic.slug }}">{{ topic.name }}</a>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if item.url %}
+            <small><a href="{{ item.url }}" class="external-link" target="_blank" rel="noopener">Watch on YouTube</a></small>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No items on this topic yet.</p>
+  {% endif %}
+
+{% endblock %}
