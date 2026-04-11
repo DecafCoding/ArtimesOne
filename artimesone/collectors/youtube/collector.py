@@ -1,12 +1,14 @@
-"""YouTube channel collector — Phase 1: discovery only.
+"""YouTube channel collector — discovery and transcript fetching.
 
 Implements :class:`~artimesone.collectors.Collector` for ``source_type =
 "youtube_channel"``.  ``discover()`` resolves the channel's uploads playlist,
 pages through recent videos, filters by duration, and inserts rows into
 ``items`` with ``status='discovered'`` or ``status='skipped_too_long'``.
 
-``fetch()`` raises :class:`NotImplementedError` — transcript retrieval via
-Apify lands in Phase 2.
+``fetch()`` calls the Apify ``streamers/youtube-scraper`` actor to retrieve
+the transcript for a single discovered video, writes a markdown file with
+YAML front matter under ``content/transcripts/youtube/``, and updates the
+item to ``status='transcribed'``.
 """
 
 from __future__ import annotations
@@ -18,12 +20,18 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, ClassVar
 
 from .api import YouTubeAPIError, YouTubeDataAPIClient, parse_iso8601_duration
+from .apify import ApifyClient, ApifyError
 
 if TYPE_CHECKING:
     from artimesone.collectors import DiscoverResult, FetchResult, Item, Source
     from artimesone.config import Settings
 
 logger = logging.getLogger(__name__)
+
+
+def _escape_yaml(value: str) -> str:
+    """Escape special characters for a YAML double-quoted string value."""
+    return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def _pick_thumbnail(snippet: dict[str, object]) -> str | None:
@@ -195,12 +203,100 @@ class YouTubeChannelCollector:
         conn: sqlite3.Connection,
         settings: Settings,
     ) -> FetchResult:
-        """Fetch transcript for a discovered video.
+        """Fetch transcript for a discovered video via Apify.
 
-        Not implemented in Phase 1 — transcript retrieval via Apify lands in
-        Phase 2.
+        1. Bail early if Apify token is not configured.
+        2. Call ``ApifyClient.fetch_transcript()`` with the video URL.
+        3. Write transcript to ``content/transcripts/youtube/{video_id}.md``
+           with YAML front matter.
+        4. Update the item row: ``status='transcribed'``, ``transcript_path``
+           set, metadata JSON updated with Apify fields.
+        5. On failure: increment ``retry_count``, set ``status='error'``,
+           record error in metadata.
         """
-        raise NotImplementedError(
-            "YouTubeChannelCollector.fetch is Phase 2. "
-            "Phase 1 only discovers videos; transcripts land in Phase 2."
+        from artimesone.collectors import FetchResult
+
+        if settings.apify_token is None:
+            return FetchResult(success=False, error="Apify token not configured")
+
+        video_id = item["external_id"]
+        url = item["url"] or f"https://www.youtube.com/watch?v={video_id}"
+
+        client = ApifyClient(token=settings.apify_token, actor_id=settings.apify_youtube_actor)
+        try:
+            result = await client.fetch_transcript(url)
+        except ApifyError as exc:
+            logger.warning("Apify error for item %s: %s", item["id"], exc)
+            self._mark_error(conn, item, str(exc))
+            return FetchResult(success=False, error=str(exc))
+        finally:
+            await client.close()
+
+        if result.transcript is None:
+            error_msg = "No transcript available"
+            self._mark_error(conn, item, error_msg)
+            return FetchResult(success=False, error=error_msg)
+
+        # Write transcript markdown file.
+        transcript_rel = f"transcripts/youtube/{video_id}.md"
+        transcript_path = settings.content_dir / transcript_rel
+        transcript_path.parent.mkdir(parents=True, exist_ok=True)
+
+        now_iso = datetime.now(UTC).isoformat()
+        front_matter = (
+            "---\n"
+            f"item_id: {item['id']}\n"
+            f"external_id: {video_id}\n"
+            f"source: youtube\n"
+            f'title: "{_escape_yaml(item["title"])}"\n'
+            f"published_at: {item.get('published_at', '')}\n"
+            f"fetched_at: {now_iso}\n"
+            "---\n\n"
         )
+        transcript_path.write_text(front_matter + result.transcript, encoding="utf-8")
+
+        # Merge Apify metadata into existing metadata JSON.
+        try:
+            metadata: dict[str, object] = json.loads(str(item.get("metadata", "{}")))
+        except (json.JSONDecodeError, TypeError):
+            metadata = {}
+        if result.description is not None:
+            metadata["description"] = result.description[:500]
+        if result.view_count is not None:
+            metadata["view_count"] = result.view_count
+        if result.duration_seconds is not None:
+            metadata["duration_seconds"] = result.duration_seconds
+
+        conn.execute(
+            """
+            UPDATE items
+            SET status = 'transcribed', transcript_path = ?, metadata = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (transcript_rel, json.dumps(metadata), now_iso, item["id"]),
+        )
+        conn.commit()
+
+        logger.info("Transcribed item %s (%s)", item["id"], video_id)
+        return FetchResult(success=True)
+
+    @staticmethod
+    def _mark_error(conn: sqlite3.Connection, item: Item, error_msg: str) -> None:
+        """Mark an item as errored: increment retry_count, store error in metadata."""
+        now_iso = datetime.now(UTC).isoformat()
+        try:
+            metadata: dict[str, object] = json.loads(str(item.get("metadata", "{}")))
+        except (json.JSONDecodeError, TypeError):
+            metadata = {}
+        metadata["last_error"] = error_msg
+
+        conn.execute(
+            """
+            UPDATE items
+            SET status = 'error', retry_count = retry_count + 1,
+                metadata = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (json.dumps(metadata), now_iso, item["id"]),
+        )
+        conn.commit()
