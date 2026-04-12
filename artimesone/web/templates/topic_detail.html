@@ -9,8 +9,11 @@
   {% if rollups %}
     {% for rollup in rollups %}
       <article>
-        <h3>{{ rollup.title }}</h3>
+        <h3><a href="/rollups/{{ rollup.id }}">{{ rollup.title }}</a></h3>
         <small>{{ rollup.generated_by }} · {{ rollup.created_at | relative_date }}</small>
+        {% if rollup.snippet %}
+          <p class="item-summary">{{ rollup.snippet }}</p>
+        {% endif %}
       </article>
     {% endfor %}
   {% else %}
