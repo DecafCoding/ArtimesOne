@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Rollups — ArtimesOne{% endblock %}
+{% block content %}
+  <h1>Rollups</h1>
+
+  {# ── Topic filter links ──────────────────────────────────────── #}
+  {% if topic_filters %}
+    <div class="topic-chips" style="margin-bottom:1rem;">
+      <a class="topic-chip{% if not active_topic %} topic-chip-active{% endif %}" href="/rollups">All</a>
+      {% for t in topic_filters %}
+        <a class="topic-chip{% if active_topic == t.slug %} topic-chip-active{% endif %}" href="/rollups?topic={{ t.slug }}">{{ t.name }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ── Rollup list ─────────────────────────────────────────────── #}
+  {% if rollups %}
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Topics</th>
+          <th>By</th>
+          <th>Sources</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rollup in rollups %}
+          <tr>
+            <td><a href="/rollups/{{ rollup.id }}">{{ rollup.title }}</a></td>
+            <td>
+              <div class="topic-chips">
+                {% for topic in rollup.topics %}
+                  <a class="topic-chip" href="/topics/{{ topic.slug }}">{{ topic.name }}</a>
+                {% endfor %}
+              </div>
+            </td>
+            <td>{{ rollup.generated_by }}</td>
+            <td>{{ rollup.source_count }}</td>
+            <td>{{ rollup.created_at | relative_date }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No rollups yet. Ask the chat agent to synthesize items on a topic.</p>
+  {% endif %}
+{% endblock %}

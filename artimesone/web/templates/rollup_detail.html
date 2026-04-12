@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ rollup.title }} — ArtimesOne{% endblock %}
+{% block content %}
+
+  <h1>{{ rollup.title }}</h1>
+
+  {# Metadata line #}
+  <div class="item-meta">
+    <span>{{ rollup.generated_by }}</span>
+    <span>{{ rollup.created_at | relative_date }}</span>
+  </div>
+
+  {# Topic chips #}
+  {% if tags %}
+    <div class="topic-chips" style="margin:0.75rem 0;">
+      {% for tag in tags %}
+        <a class="topic-chip" href="/topics/{{ tag.slug }}">{{ tag.name }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Rollup body #}
+  {% if body %}
+    <article>
+      {{ body | replace('\n\n', '</p><p>') | safe }}
+    </article>
+  {% else %}
+    <article><p><em>No content available.</em></p></article>
+  {% endif %}
+
+  {# ── Source items ────────────────────────────────────────────── #}
+  <h2>Sources</h2>
+  {% if source_items %}
+    {% for item in source_items %}
+      <div class="item-card">
+        {% if item.thumbnail_url %}
+          <img class="item-thumb" src="{{ item.thumbnail_url }}" alt="" loading="lazy">
+        {% else %}
+          <div class="item-thumb-placeholder"></div>
+        {% endif %}
+
+        <div class="item-body">
+          <h3><a href="/items/{{ item.id }}">{{ item.title }}</a></h3>
+
+          <div class="item-meta">
+            <span>{{ item.source_name }}</span>
+            {% if item.duration_seconds %}
+              <span>{{ item.duration_seconds | format_duration }}</span>
+            {% endif %}
+            {% if item.published_at %}
+              <span>{{ item.published_at | relative_date }}</span>
+            {% endif %}
+          </div>
+
+          {% if item.summary %}
+            <p class="item-summary">{{ item.summary | first_paragraph }}</p>
+          {% endif %}
+
+          {% if item.topics %}
+            <div class="topic-chips">
+              {% for topic in item.topics %}
+                <a class="topic-chip" href="/topics/{{ topic.slug }}">{{ topic.name }}</a>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if item.url %}
+            <small><a href="{{ item.url }}" class="external-link" target="_blank" rel="noopener">Watch on YouTube</a></small>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No source items linked to this rollup.</p>
+  {% endif %}
+
+{% endblock %}

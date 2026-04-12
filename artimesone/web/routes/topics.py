@@ -65,6 +65,17 @@ def _read_summary_text(content_dir: Path, summary_path: str | None) -> str | Non
     return text.strip() or None
 
 
+def _first_paragraph(text: str | None) -> str | None:
+    """Extract the first non-empty paragraph from *text*."""
+    if not text:
+        return None
+    for block in text.split("\n\n"):
+        stripped = block.strip()
+        if stripped:
+            return stripped
+    return text.strip() or None
+
+
 def _enrich_item_row(
     row: sqlite3.Row,
     conn: sqlite3.Connection,
@@ -173,6 +184,7 @@ async def topic_detail(
             "title": r["title"],
             "generated_by": r["generated_by"],
             "created_at": r["created_at"],
+            "snippet": _first_paragraph(_read_summary_text(settings.content_dir, r["file_path"])),
         }
         for r in rollup_rows
     ]
