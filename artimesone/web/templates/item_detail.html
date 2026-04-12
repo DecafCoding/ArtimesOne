@@ -42,6 +42,19 @@
       {% if item.duration_seconds %} — {{ item.duration_seconds | format_duration }}{% endif %}</p>
       <p>This video exceeded the duration limit and was not processed.</p>
     </article>
+  {% elif item.status == 'error' %}
+    <article>
+      <h3>Collection failed</h3>
+      <p>
+        This item's collection pipeline failed{% if item.retry_count %} after {{ item.retry_count }} automatic retries{% endif %}.
+        {% if item.last_error %}
+          <br><small><strong>Last error:</strong> <code>{{ item.last_error }}</code></small>
+        {% endif %}
+      </p>
+      <form method="post" action="/items/{{ item.id }}/retry">
+        <button type="submit">Retry now</button>
+      </form>
+    </article>
   {% elif item.status == 'discovered' %}
     <article><p><em>Awaiting transcript...</em></p></article>
   {% elif item.status == 'transcribed' and not summary_text %}
