@@ -223,9 +223,7 @@ async def test_source_detail_shows_run_history(client: httpx.AsyncClient, app: A
     assert "API timeout" in r.text
 
 
-async def test_source_detail_items_filtered_to_source(
-    client: httpx.AsyncClient, app: Any
-) -> None:
+async def test_source_detail_items_filtered_to_source(client: httpx.AsyncClient, app: Any) -> None:
     """Source detail only shows items for the requested source."""
     conn = _get_db_conn(app)
     try:
@@ -242,9 +240,7 @@ async def test_source_detail_items_filtered_to_source(
     assert "Source B Video" not in r.text
 
 
-async def test_source_detail_empty_items_and_runs(
-    client: httpx.AsyncClient, app: Any
-) -> None:
+async def test_source_detail_empty_items_and_runs(client: httpx.AsyncClient, app: Any) -> None:
     """Source detail with no items or runs shows empty-state messages."""
     conn = _get_db_conn(app)
     try:
