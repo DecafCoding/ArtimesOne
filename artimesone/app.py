@@ -49,13 +49,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     reload_jobs(scheduler, settings)
     scheduler.start()
 
+    # Initialize the Telegram bot if configured (plan §8).
+    telegram_bot = None
+    if settings.telegram_bot_token:
+        from telegram import Bot
+
+        telegram_bot = Bot(token=settings.telegram_bot_token)
+        await telegram_bot.initialize()
+        logging.getLogger(__name__).info("Telegram bot initialized")
+
     # Stash on app.state for dependency injection.
     app.state.settings = settings
     app.state.scheduler = scheduler
     app.state.db_path = db_path
+    app.state.telegram_bot = telegram_bot
 
     yield
 
+    if app.state.telegram_bot is not None:
+        await app.state.telegram_bot.shutdown()
     scheduler.shutdown(wait=False)
 
 
@@ -78,6 +90,7 @@ def create_app() -> FastAPI:
     register_filters(app.state.templates.env)
 
     # Routers.
+    from .telegram.webhook import router as telegram_router
     from .web.routes.chat import router as chat_router
     from .web.routes.dashboard import router as dashboard_router
     from .web.routes.items import router as items_router
@@ -93,6 +106,7 @@ def create_app() -> FastAPI:
     app.include_router(runs_router)
     app.include_router(sources_router)
     app.include_router(topics_router)
+    app.include_router(telegram_router)
 
     return app
 
