@@ -78,12 +78,14 @@ def create_app() -> FastAPI:
     register_filters(app.state.templates.env)
 
     # Routers.
+    from .web.routes.chat import router as chat_router
     from .web.routes.dashboard import router as dashboard_router
     from .web.routes.items import router as items_router
     from .web.routes.runs import router as runs_router
     from .web.routes.sources import router as sources_router
     from .web.routes.topics import router as topics_router
 
+    app.include_router(chat_router)
     app.include_router(dashboard_router)
     app.include_router(items_router)
     app.include_router(runs_router)
