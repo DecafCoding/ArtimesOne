@@ -4,7 +4,7 @@ ArtimesOne is a single-user personal AI assistant that collects content from sou
 you subscribe to (YouTube channels first, more to come), summarizes it, and lets you
 chat about the corpus through a web UI. Designed to run locally on your own machine.
 
-## What works today (Phases 1–4 complete)
+## What works today (Phases 1–5 complete)
 
 - **Config** — pydantic-settings driven, graceful degradation with zero env vars
 - **SQLite schema** — full v1 schema with WAL mode, FTS5 search, hand-rolled migrations
@@ -24,11 +24,11 @@ chat about the corpus through a web UI. Designed to run locally on your own mach
   - `/rollups` — browse agent-authored rollup documents with topic filtering
   - `/rollups/{id}` — rollup detail with body text and cited source items
 - **Chat agent** — pydantic-ai agent with 15 tools (9 read, 3 write, 3 source-management) for querying the corpus, creating rollup syntheses, tagging items, and managing sources — all with streaming responses
+- **Telegram surface** — same chat agent reachable from a phone via a Telegram bot. Webhook mode, ~750 ms throttled edit-in-place streaming, markdown → Telegram-HTML conversion, 4096-char paragraph-aware splitting, single-user guard, `/start` welcome, and a phone-friendly prompt addendum for shorter replies
 - **Entry point** — `python -m artimesone` starts FastAPI + scheduler in one process
 
 ## What's next
 
-- Phase 5: Telegram as a secondary chat surface
 - Phase 6: Polish, full test coverage, docs
 
 ## Installation
@@ -60,6 +60,8 @@ web UI with zero env vars set. Missing keys disable the features they unlock:
 | `ARTIMESONE_YOUTUBE_API_KEY` | YouTube video discovery | [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → YouTube Data API v3 |
 | `APIFY_TOKEN` | Transcript fetching | [Apify Console](https://console.apify.com/) → Settings → Integrations |
 | `OPENAI_API_KEY` | Summarization and chat | [OpenAI Platform](https://platform.openai.com/api-keys) |
+| `ARTIMESONE_TELEGRAM_BOT_TOKEN` | Telegram chat surface | Create a bot via BotFather on Telegram |
+| `ARTIMESONE_TELEGRAM_ALLOWED_CHAT_ID` | Telegram single-user guard | Your Telegram user/chat ID (any other sender is silently rejected) |
 
 ### Running
 
@@ -96,7 +98,7 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy artimesone
 
-# Tests (179 tests, all offline, no live API calls)
+# Tests (230 tests, all offline, no live API calls)
 uv run python -m pytest -v
 ```
 
@@ -115,6 +117,7 @@ artimesone/
     youtube/           # YouTube Data API + Apify transcript client + channel collector
   agents/              # pydantic-ai agents (summarizer, chat agent + 15 tools)
   pipeline/            # Processing pipelines (summarize: transcript → summary + tags)
+  telegram/            # Telegram chat surface (webhook, streaming, markdown → HTML)
   web/
     filters.py         # Jinja2 template filters (duration, dates, text)
     routes/            # FastAPI routers (dashboard, items, topics, sources, runs, chat, rollups)
