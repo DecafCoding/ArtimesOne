@@ -10,11 +10,12 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ...app import get_db, get_settings
 from ...config import Settings
@@ -261,6 +262,8 @@ async def item_detail(
         "source_name": row["source_name"],
         "duration_seconds": metadata.get("duration_seconds"),
         "thumbnail_url": metadata.get("thumbnail_url"),
+        "retry_count": row["retry_count"],
+        "last_error": metadata.get("last_error"),
     }
 
     templates = request.app.state.templates
@@ -274,3 +277,46 @@ async def item_detail(
             "transcript_text": transcript_text,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Manual retry route
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{item_id}/retry")
+async def retry_item(
+    item_id: int,
+    conn: Annotated[sqlite3.Connection, Depends(get_db)],
+) -> RedirectResponse:
+    """Reset a stuck item so the scheduler's retry predicates re-pick it up.
+
+    User-only recovery action per PRD §8 write-boundary matrix. Clears
+    ``transcript_path`` and ``summary_path`` so the full pipeline re-runs; the
+    stale on-disk md files are left as orphans and can be GC'd later.
+    """
+    row = conn.execute("SELECT id, metadata FROM items WHERE id = ?", (item_id,)).fetchone()
+    if row is None:
+        return RedirectResponse(url="/items", status_code=303)
+
+    metadata = _parse_metadata(row["metadata"])
+    metadata.pop("last_error", None)
+
+    now_iso = datetime.now(UTC).isoformat()
+    conn.execute(
+        """
+        UPDATE items
+        SET status = 'discovered',
+            retry_count = 0,
+            transcript_path = NULL,
+            summary_path = NULL,
+            metadata = ?,
+            updated_at = ?
+        WHERE id = ?
+        """,
+        (json.dumps(metadata), now_iso, item_id),
+    )
+    conn.commit()
+
+    logger.info("Manual retry reset for item %s", item_id)
+    return RedirectResponse(url=f"/items/{item_id}", status_code=303)
