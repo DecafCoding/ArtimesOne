@@ -356,6 +356,80 @@ async def test_retry_stops_at_three(tmp_path: Path) -> None:
 
 
 @respx.mock
+async def test_retry_summarize_failure_requeues(tmp_path: Path) -> None:
+    """Summarizer fails on first run → retry_count=1. Second run succeeds → summarized.
+
+    Exercises the Phase 3 (summarize) retry path, complementing the Phase 2
+    (fetch) retry coverage in ``test_retry_failed_fetch``.
+    """
+    conn = _make_conn(tmp_path)
+    settings = _make_settings(tmp_path)
+    source = _seed_source(conn)
+
+    for subdir in ("transcripts", "summaries", "rollups"):
+        (settings.content_dir / subdir).mkdir(parents=True, exist_ok=True)
+
+    # Pre-seed a transcribed item with a real transcript file on disk so the
+    # summarize phase picks it up without needing discover/fetch.
+    transcript_rel = "transcripts/youtube/vid_retry.md"
+    (settings.content_dir / transcript_rel).parent.mkdir(parents=True, exist_ok=True)
+    (settings.content_dir / transcript_rel).write_text(
+        "---\ntitle: Retry Test\n---\n\nA transcript about LoRA training.",
+        encoding="utf-8",
+    )
+    now = "2026-01-01T00:00:00+00:00"
+    metadata = json.dumps({"duration_seconds": 600})
+    conn.execute(
+        """
+        INSERT INTO items
+            (source_id, external_id, title, url, published_at, fetched_at,
+             metadata, status, transcript_path, retry_count, created_at, updated_at)
+        VALUES (?, 'vid_retry', 'Retry Test', 'https://youtu.be/vid_retry',
+                ?, ?, ?, 'transcribed', ?, 0, ?, ?)
+        """,
+        (source["id"], now, now, metadata, transcript_rel, now, now),
+    )
+    conn.commit()
+    item_id = conn.execute("SELECT id FROM items WHERE external_id = 'vid_retry'").fetchone()["id"]
+
+    # Discover: no new videos. Apify is not needed because nothing is
+    # discovered for fetch and the pre-seeded item is already transcribed.
+    _mock_youtube_api([])
+
+    agent = create_summarizer_agent(model="test")
+
+    def _patched_create(model: str = "test"):
+        return agent
+
+    create_patch = patch("artimesone.pipeline.summarize.create_summarizer_agent", _patched_create)
+
+    async def _raising_handler(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        raise RuntimeError("simulated summarizer failure")
+
+    # --- Run 1: summarizer raises → item errored, retry_count=1. ---
+    with agent.override(model=FunctionModel(_raising_handler)), create_patch:
+        await run_source_collection(source["id"], settings)  # type: ignore[arg-type]
+
+    row = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert row["status"] == "error"
+    assert row["retry_count"] == 1
+    assert row["summary_path"] is None
+
+    # --- Run 2: summarizer succeeds → item summarized. ---
+    respx.reset()
+    _mock_youtube_api([])
+
+    with agent.override(model=FunctionModel(_stub_handler)), create_patch:
+        await run_source_collection(source["id"], settings)  # type: ignore[arg-type]
+
+    row = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+    assert row["status"] == "summarized"
+    assert row["summary_path"] is not None
+
+    conn.close()
+
+
+@respx.mock
 async def test_aggregate_status_partial(tmp_path: Path) -> None:
     """Some items succeed, some fail → collection_runs.status = 'partial'."""
     conn = _make_conn(tmp_path)

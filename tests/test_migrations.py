@@ -64,6 +64,40 @@ def test_migrations_are_idempotent() -> None:
     conn.close()
 
 
+def test_items_fts_title_update_trigger() -> None:
+    """Updating items.title refreshes items_fts.title via the items_fts_au trigger."""
+    conn = _in_memory_conn()
+    apply_migrations(conn)
+
+    now = "2026-01-01T00:00:00"
+    conn.execute(
+        """
+        INSERT INTO sources (type, external_id, name, created_at, updated_at)
+        VALUES ('youtube_channel', 'UCtest', 'Test', ?, ?)
+        """,
+        (now, now),
+    )
+    conn.execute(
+        """
+        INSERT INTO items
+            (source_id, external_id, title, fetched_at, metadata, status,
+             retry_count, created_at, updated_at)
+        VALUES (1, 'vid1', 'Old Title', ?, '{}', 'discovered', 0, ?, ?)
+        """,
+        (now, now, now),
+    )
+
+    # Sanity: the insert trigger populated items_fts with the original title.
+    row = conn.execute("SELECT title FROM items_fts WHERE rowid = 1").fetchone()
+    assert row["title"] == "Old Title"
+
+    # Update the title and verify the update trigger refreshes items_fts.
+    conn.execute("UPDATE items SET title = 'New Title' WHERE id = 1")
+    row = conn.execute("SELECT title FROM items_fts WHERE rowid = 1").fetchone()
+    assert row["title"] == "New Title"
+    conn.close()
+
+
 def test_foreign_keys_enforced() -> None:
     """Inserting an item with a nonexistent source_id raises IntegrityError."""
     conn = _in_memory_conn()
