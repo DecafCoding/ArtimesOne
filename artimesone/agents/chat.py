@@ -14,7 +14,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, RunContext
 
 if TYPE_CHECKING:
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -50,6 +50,12 @@ If the user asks you to follow a new source, use `add_source` (auto-enabled) \
 and confirm what was added. If the user asks to stop a source, use \
 `disable_source` rather than asking them to do it manually."""
 
+TELEGRAM_SYSTEM_ADDENDUM = (
+    "Your response is being sent via Telegram and read on a phone. "
+    "Prefer shorter replies. Lead with the answer; skip preamble. "
+    "Use inline links instead of long quoted blocks."
+)
+
 
 @dataclass
 class ChatDeps:
@@ -58,6 +64,7 @@ class ChatDeps:
     conn: sqlite3.Connection
     settings: Settings
     scheduler: AsyncIOScheduler | None = None
+    is_telegram: bool = False
 
 
 def create_chat_agent(model: str = "openai:gpt-4o") -> Agent[ChatDeps, str]:
@@ -78,5 +85,11 @@ def create_chat_agent(model: str = "openai:gpt-4o") -> Agent[ChatDeps, str]:
     from artimesone.agents.tools import register_tools
 
     register_tools(agent)
+
+    @agent.system_prompt
+    def _telegram_addendum(ctx: RunContext[ChatDeps]) -> str:
+        if ctx.deps.is_telegram:
+            return TELEGRAM_SYSTEM_ADDENDUM
+        return ""
 
     return agent
