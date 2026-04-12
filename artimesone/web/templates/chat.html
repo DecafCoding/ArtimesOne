@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Chat — ArtimesOne{% endblock %}
+{% block content %}
+
+<h1>Chat</h1>
+
+{% if not has_api_key %}
+  <p>Chat is unavailable — configure an LLM provider by setting <code>OPENAI_API_KEY</code> in your <code>.env</code> file.</p>
+{% endif %}
+
+<div id="chat-container">
+  <div id="chat-messages">
+    {% for msg in messages %}
+      {% if msg.role == "user" %}
+        <div class="chat-msg chat-msg-user">{{ msg.content }}</div>
+      {% elif msg.role == "assistant" %}
+        <div class="chat-msg chat-msg-assistant">
+          {% if msg.tool_calls %}
+            {% for tc in msg.tool_calls %}
+              {% if tc.is_write %}
+                <div class="tool-indicator tool-indicator-write">{{ tc.description }}</div>
+              {% else %}
+                <div class="tool-indicator tool-indicator-read">{{ tc.description }}</div>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          <div class="msg-content">{{ msg.content }}</div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <form id="chat-form" autocomplete="off">
+    <fieldset role="group">
+      <input type="text" id="chat-input" name="message" placeholder="Ask about your content..."
+             {% if not has_api_key %}disabled{% endif %}
+             required>
+      <button type="submit" {% if not has_api_key %}disabled{% endif %}>Send</button>
+    </fieldset>
+  </form>
+
+  {% if messages %}
+    <form method="post" action="/chat/clear" style="margin-top: 0.5rem;">
+      <button type="submit" class="secondary outline" style="font-size: 0.85rem; padding: 0.3rem 0.8rem;">
+        Clear history
+      </button>
+    </form>
+  {% endif %}
+</div>
+
+<script>
+(function() {
+  const form = document.getElementById('chat-form');
+  const input = document.getElementById('chat-input');
+  const messagesDiv = document.getElementById('chat-messages');
+
+  function scrollToBottom() {
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  scrollToBottom();
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const message = input.value.trim();
+    if (!message) return;
+
+    // Show user message immediately.
+    const userDiv = document.createElement('div');
+    userDiv.className = 'chat-msg chat-msg-user';
+    userDiv.textContent = message;
+    messagesDiv.appendChild(userDiv);
+    scrollToBottom();
+
+    input.value = '';
+    input.disabled = true;
+    form.querySelector('button').disabled = true;
+
+    // Create assistant response container.
+    const assistantDiv = document.createElement('div');
+    assistantDiv.className = 'chat-msg chat-msg-assistant';
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'msg-content';
+    assistantDiv.appendChild(contentDiv);
+    messagesDiv.appendChild(assistantDiv);
+
+    try {
+      const formData = new FormData();
+      formData.append('message', message);
+
+      const response = await fetch('/chat/send', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        contentDiv.textContent = 'Error: failed to send message.';
+        scrollToBottom();
+        return;
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('text/event-stream')) {
+        // Non-streaming response (e.g. no API key fallback).
+        contentDiv.innerHTML = await response.text();
+        scrollToBottom();
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE events from buffer.
+        const lines = buffer.split('\n');
+        buffer = lines.pop();  // Keep incomplete line in buffer.
+
+        let eventType = null;
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.substring(7).trim();
+          } else if (line.startsWith('data: ')) {
+            const data = line.substring(6);
+
+            if (eventType === 'tool') {
+              try {
+                const tool = JSON.parse(data);
+                const indicator = document.createElement('div');
+                indicator.className = tool.is_write
+                  ? 'tool-indicator tool-indicator-write'
+                  : 'tool-indicator tool-indicator-read';
+                indicator.textContent = tool.description;
+                // Insert before the content div.
+                assistantDiv.insertBefore(indicator, contentDiv);
+              } catch (e) { /* ignore parse errors */ }
+            } else if (eventType === 'token') {
+              const text = data.replace(/\\n/g, '\n');
+              fullText += text;
+              contentDiv.innerHTML = escapeHtml(fullText).replace(/\n/g, '<br>');
+              scrollToBottom();
+            } else if (eventType === 'done') {
+              // Stream complete.
+            }
+            eventType = null;
+          }
+        }
+      }
+    } catch (err) {
+      contentDiv.textContent = 'Error: ' + err.message;
+    } finally {
+      input.disabled = false;
+      form.querySelector('button').disabled = false;
+      input.focus();
+      scrollToBottom();
+    }
+  });
+})();
+</script>
+
+{% endblock %}
