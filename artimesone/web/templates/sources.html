@@ -1,37 +1,34 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Sources</h1>
   {% if message %}<article>{{ message }}</article>{% endif %}
-  <h2>Add a YouTube channel</h2>
-  <form method="post" action="/sources">
-    <label>Channel ID
-      <input name="external_id" placeholder="UCXuqSBlHAE6Xw-yeJA0Tunw" required>
-    </label>
-    <label>Display name
-      <input name="name" placeholder="Two Minute Papers" required>
-    </label>
+  <h2>Add a YouTube Channel</h2>
+  <form method="post" action="/sources" class="sources-add-form">
+    <input name="external_id" placeholder="Channel ID" aria-label="Channel ID" required>
+    <input name="name" placeholder="Display Name" aria-label="Display Name" required>
     <input type="hidden" name="type" value="youtube_channel">
     <button type="submit">Add source</button>
   </form>
-  <h2>Registered sources</h2>
+  <h2>Sources</h2>
   {% if sources %}
   <table>
-    <thead><tr><th>Name</th><th>Type</th><th>External ID</th><th>Enabled</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Actions</th></tr></thead>
     <tbody>
     {% for s in sources %}
       <tr>
-        <td><a href="/sources/{{ s.id }}">{{ s.name }}</a></td><td>{{ s.type }}</td><td><code>{{ s.external_id }}</code></td>
-        <td>{{ "yes" if s.enabled else "no" }}</td>
+        <td><a href="/sources/{{ s.id }}">{{ s.name }}</a></td>
+        <td>{{ s.type }}</td>
         <td>
           {% if s.enabled %}
             <form method="post" action="/sources/{{ s.id }}/disable" style="display:inline">
-              <button type="submit" class="secondary">Disable</button>
+              <button type="submit" class="btn-toggle btn-toggle-on">Disable</button>
             </form>
           {% else %}
             <form method="post" action="/sources/{{ s.id }}/enable" style="display:inline">
-              <button type="submit" class="secondary">Enable</button>
+              <button type="submit" class="btn-toggle btn-toggle-off">Enable</button>
             </form>
           {% endif %}
+        </td>
+        <td>
           <form method="post" action="/sources/{{ s.id }}/delete" style="display:inline"
                 onsubmit="return confirm('Delete this source?');">
             <button type="submit" class="contrast">Delete</button>
