@@ -13,8 +13,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Mirror .env into os.environ so bare-name third-party SDK vars (OPENAI_API_KEY,
+# APIFY_TOKEN) reach the SDKs that read os.environ directly. pydantic-settings
+# reads .env into Settings fields but does not populate os.environ, so without
+# this the openai/apify clients can't see keys that live only in .env.
+# override=False preserves the "shell env wins over .env" precedence.
+load_dotenv(override=False)
 
 
 class Settings(BaseSettings):
