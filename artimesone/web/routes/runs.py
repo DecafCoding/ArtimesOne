@@ -1,7 +1,11 @@
 """Collection run log route — /runs.
 
-Shows recent collection runs with source name, timestamps, status,
-item counts, and error messages. Ordered by most recent first.
+Renders two sections:
+
+1. **Schedule** — one row per source with next-run time (from APScheduler),
+   last-run status, and time since last run. Covers both enabled and disabled
+   sources so the user can diagnose "why isn't this updating?" at a glance.
+2. **Recent runs** — the historical ``collection_runs`` log, newest first.
 """
 
 from __future__ import annotations
@@ -13,8 +17,43 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ...app import get_db
+from ...scheduler import get_next_run_times
 
 router = APIRouter(prefix="/runs")
+
+
+def _build_schedule(
+    conn: sqlite3.Connection,
+    request: Request,
+) -> list[dict[str, Any]]:
+    """Return per-source schedule rows for the Schedule section."""
+    next_runs = get_next_run_times(request.app.state.scheduler)
+
+    rows = conn.execute(
+        """
+        SELECT s.id, s.name, s.enabled,
+               (SELECT status FROM collection_runs
+                WHERE source_id = s.id
+                ORDER BY started_at DESC LIMIT 1) AS last_status,
+               (SELECT COALESCE(completed_at, started_at) FROM collection_runs
+                WHERE source_id = s.id
+                ORDER BY started_at DESC LIMIT 1) AS last_at
+        FROM sources s
+        ORDER BY s.name
+        """
+    ).fetchall()
+
+    return [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "enabled": bool(r["enabled"]),
+            "next_run": next_runs.get(r["id"]),
+            "last_status": r["last_status"],
+            "last_at": r["last_at"],
+        }
+        for r in rows
+    ]
 
 
 @router.get("", response_class=HTMLResponse)
@@ -22,7 +61,9 @@ async def list_runs(
     request: Request,
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
 ) -> HTMLResponse:
-    """Render the collection run log."""
+    """Render the Schedule section and the collection run log."""
+    schedule = _build_schedule(conn, request)
+
     rows = conn.execute(
         """
         SELECT cr.id, cr.started_at, cr.completed_at, cr.status,
@@ -54,5 +95,5 @@ async def list_runs(
     return templates.TemplateResponse(  # type: ignore[no-any-return]
         request,
         "runs.html",
-        {"runs": runs},
+        {"schedule": schedule, "runs": runs},
     )

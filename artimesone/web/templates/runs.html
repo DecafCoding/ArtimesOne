@@ -4,6 +4,45 @@
 
   <h1>Collection Runs</h1>
 
+  <h2>Schedule</h2>
+  {% if schedule %}
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Next run</th>
+        <th>Last run</th>
+        <th>Last status</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in schedule %}
+      <tr>
+        <td><a href="/sources/{{ row.id }}">{{ row.name }}</a></td>
+        <td>
+          {% if not row.enabled %}
+            <em>disabled</em>
+          {% else %}
+            {{ row.next_run | relative_time }}
+          {% endif %}
+        </td>
+        <td>{{ row.last_at | relative_time if row.last_at else "never" }}</td>
+        <td>
+          {% if row.last_status %}
+            <span class="badge-run-{{ row.last_status }}">{{ row.last_status }}</span>
+          {% else %}
+            —
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No sources configured. <a href="/sources">Add one</a> to start collecting.</p>
+  {% endif %}
+
+  <h2>Recent runs</h2>
   {% if runs %}
   <table>
     <thead>
