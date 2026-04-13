@@ -199,20 +199,19 @@
   display: flex;
   gap: 0.75rem;
   align-items: center;
-  flex-wrap: wrap;
 }
 
-.sources-add-form input[type="text"],
-.sources-add-form input:not([type]) {
-  flex: 1;
-  min-width: 12rem;
+.sources-add-form > input:not([type="hidden"]) {
+  flex: 1 1 0;
+  min-width: 0;
   margin: 0;
 }
 
-.sources-add-form button {
-  flex-shrink: 0;
-  margin: 0;
+.sources-add-form > button {
+  flex: 0 0 auto;
   width: auto;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .btn-toggle {
