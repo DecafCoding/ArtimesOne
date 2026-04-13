@@ -36,6 +36,35 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_POLL_CRON = "0 */6 * * *"
 
+_JOB_ID_PREFIX = "source-"
+
+
+def get_next_run_times(
+    scheduler: AsyncIOScheduler | None,
+) -> dict[int, datetime | None]:
+    """Return ``{source_id: next_run_time}`` for all scheduler jobs.
+
+    Reads the live scheduler state — never recomputes from the cron string,
+    since APScheduler may have paused, rescheduled, or removed jobs since the
+    last :func:`reload_jobs` call. Jobs whose ids don't match the
+    ``source-<int>`` convention are ignored. A ``None`` value means the job
+    exists but is currently paused.
+    """
+    if scheduler is None:
+        return {}
+
+    result: dict[int, datetime | None] = {}
+    for job in scheduler.get_jobs():
+        job_id = str(job.id)
+        if not job_id.startswith(_JOB_ID_PREFIX):
+            continue
+        try:
+            source_id = int(job_id[len(_JOB_ID_PREFIX) :])
+        except ValueError:
+            continue
+        result[source_id] = job.next_run_time
+    return result
+
 
 def build_scheduler(settings: Settings) -> AsyncIOScheduler:  # noqa: ARG001
     """Create an unstarted :class:`AsyncIOScheduler`.

@@ -11,6 +11,8 @@ from datetime import UTC, datetime
 
 from jinja2 import Environment
 
+_RELATIVE_EMPTY = "—"
+
 
 def format_duration(seconds: int | float | None) -> str:
     """Format seconds as ``H:MM:SS`` or ``M:SS``.
@@ -57,6 +59,51 @@ def relative_date(iso_string: str | None) -> str:
     return f"{target.strftime('%b')} {target.day}"
 
 
+def relative_time(value: datetime | str | None) -> str:
+    """Render a datetime as a short relative span (``in 3h 27m``, ``2h ago``).
+
+    Accepts a tz-aware ``datetime`` or an ISO 8601 string. Naive datetimes are
+    assumed to be UTC. Returns :data:`_RELATIVE_EMPTY` for ``None`` or unparsable
+    input. Units cascade: days+hours for ≥1d, hours+minutes for ≥1h, minutes for
+    ≥1m, ``just now`` under a minute.
+    """
+    if value is None:
+        return _RELATIVE_EMPTY
+
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value)
+        except (ValueError, TypeError):
+            return _RELATIVE_EMPTY
+    else:
+        dt = value
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+
+    now = datetime.now(UTC)
+    delta = dt - now
+    total_seconds = int(delta.total_seconds())
+    future = total_seconds >= 0
+    magnitude = abs(total_seconds)
+
+    if magnitude < 60:
+        return "just now"
+
+    days, remainder = divmod(magnitude, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes = remainder // 60
+
+    if days > 0:
+        span = f"{days}d {hours}h" if hours else f"{days}d"
+    elif hours > 0:
+        span = f"{hours}h {minutes}m" if minutes else f"{hours}h"
+    else:
+        span = f"{minutes}m"
+
+    return f"in {span}" if future else f"{span} ago"
+
+
 def first_paragraph(text: str | None) -> str:
     """Extract the first non-empty paragraph from *text*.
 
@@ -75,4 +122,5 @@ def register_filters(env: Environment) -> None:
     """Register all custom filters on a Jinja2 environment."""
     env.filters["format_duration"] = format_duration
     env.filters["relative_date"] = relative_date
+    env.filters["relative_time"] = relative_time
     env.filters["first_paragraph"] = first_paragraph
