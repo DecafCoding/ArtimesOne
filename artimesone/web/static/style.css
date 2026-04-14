@@ -345,7 +345,7 @@
   line-height: 1.4;
   margin: 0 0 0.6rem;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex-grow: 1;
