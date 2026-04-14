@@ -237,6 +237,128 @@
   --pico-border-color: #c0392b;
 }
 
+/* ── Video card grid (items list) ─────────────────────────────────── */
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.video-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--pico-card-background-color, var(--pico-background-color));
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.video-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.video-card-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--pico-muted-border-color);
+  overflow: hidden;
+}
+
+.video-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.video-card:hover .video-card-thumb img {
+  transform: scale(1.03);
+}
+
+.video-card-duration {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 3px;
+  line-height: 1.3;
+}
+
+.video-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0.75rem;
+  min-width: 0;
+}
+
+.video-card-title {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  line-height: 1.3;
+  min-height: 2.6em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.video-card-title a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.video-card-title a:hover {
+  text-decoration: underline;
+}
+
+.video-card-meta {
+  font-size: 0.8rem;
+  color: var(--pico-muted-color);
+  margin-bottom: 0.4rem;
+}
+
+.video-card-meta span + span::before {
+  content: " · ";
+}
+
+.video-card-meta a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.video-card-meta a:hover {
+  text-decoration: underline;
+}
+
+.video-card-summary {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 0 0 0.6rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex-grow: 1;
+}
+
+.video-card-badges {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
 /* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .item-card {
