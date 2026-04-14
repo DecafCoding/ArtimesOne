@@ -303,7 +303,7 @@
 
 .video-card-title {
   margin: 0 0 0.4rem;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   line-height: 1.3;
   min-height: 2.6em;
   display: -webkit-box;
@@ -341,8 +341,8 @@
 }
 
 .video-card-summary {
-  font-size: 0.85rem;
-  line-height: 1.45;
+  font-size: 0.75rem;
+  line-height: 1.4;
   margin: 0 0 0.6rem;
   display: -webkit-box;
   -webkit-line-clamp: 3;

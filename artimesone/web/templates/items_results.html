@@ -36,7 +36,7 @@
           {% elif item.status == 'skipped_too_long' %}
             <p class="video-card-summary"><span class="badge-too-long">Too long</span></p>
           {% elif item.summary %}
-            <p class="video-card-summary">{{ item.summary | first_paragraph | truncate(200) }}</p>
+            <p class="video-card-summary">{{ item.summary | first_paragraph | truncate(300) }}</p>
           {% endif %}
         </div>
       </article>
