@@ -5,12 +5,14 @@
   <h1>Collection Runs</h1>
 
   <h2>Schedule</h2>
+  <p>Next round: {{ next_round | relative_time if next_round else "not scheduled" }}.
+     Each round picks up to 5 sources whose last check is NULL or more than 24 hours old.</p>
   {% if schedule %}
   <table class="table-compact">
     <thead>
       <tr>
         <th>Source</th>
-        <th>Next run</th>
+        <th>Last check</th>
         <th>Last run</th>
         <th>Last status</th>
       </tr>
@@ -23,7 +25,7 @@
           {% if not row.enabled %}
             <em>disabled</em>
           {% else %}
-            {{ row.next_run | relative_time }}
+            {{ row.last_check_at | relative_time if row.last_check_at else "never" }}
           {% endif %}
         </td>
         <td>{{ row.last_at | relative_time if row.last_at else "never" }}</td>

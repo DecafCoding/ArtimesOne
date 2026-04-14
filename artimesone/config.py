@@ -62,6 +62,18 @@ class Settings(BaseSettings):
     # --- YouTube ---
     youtube_api_key: str | None = Field(default=None)
     max_video_duration_minutes: int = Field(default=60)
+    # Cold-start cap: maximum number of videos discovered the first time a
+    # channel is visited (before any items exist for that source).
+    initial_video_cap: int = Field(default=20)
+    # Rolling cap: maximum number of new videos discovered per round after
+    # the first visit. If a channel posts more than this in a single day,
+    # the overflow rolls into the next round.
+    rolling_video_cap: int = Field(default=3)
+
+    # --- Scheduler ---
+    # Single round job cron. Each round processes up to 5 sources whose
+    # last_check_at is NULL or more than 24h old.
+    round_cron: str = Field(default="*/30 * * * *")
 
     # --- Apify (Phase 2) ---
     apify_token: str | None = Field(

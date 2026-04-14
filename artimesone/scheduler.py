@@ -1,10 +1,15 @@
-"""APScheduler wiring for scheduled collection runs.
+"""APScheduler wiring for round-based collection.
 
-Builds an ``AsyncIOScheduler`` and adds one cron job per enabled source. Each
-job opens its own short-lived SQLite connection, creates a ``collection_runs``
-row, and runs the three-phase pipeline: discover → fetch → summarize.
+A single ``run_collection_round`` job runs on ``settings.round_cron``. Each
+round selects up to 5 enabled sources whose ``last_check_at`` is NULL or more
+than 24 hours old (oldest first, NULLs first), then processes them sequentially
+via :func:`run_source_collection`. ``last_check_at`` is updated after every
+source — success, partial, or failure — so a permanently broken source never
+blocks the rotation.
 
-Each phase degrades gracefully when its required credentials are absent:
+Each phase of ``run_source_collection`` degrades gracefully when its required
+credentials are absent:
+
 - discover requires ``youtube_api_key``
 - fetch requires ``apify_token``
 - summarize requires ``openai_api_key``
@@ -17,10 +22,10 @@ with aggregate status: ``success`` (all items ok), ``partial`` (mixed),
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -34,36 +39,26 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_POLL_CRON = "0 */6 * * *"
+ROUND_JOB_ID = "collection-round"
+SOURCES_PER_ROUND = 5
+SOURCE_COOLDOWN_HOURS = 24
 
-_JOB_ID_PREFIX = "source-"
 
+def get_next_round_time(scheduler: AsyncIOScheduler | None) -> datetime | None:
+    """Return the next scheduled round time, or ``None`` if no round job exists.
 
-def get_next_run_times(
-    scheduler: AsyncIOScheduler | None,
-) -> dict[int, datetime | None]:
-    """Return ``{source_id: next_run_time}`` for all scheduler jobs.
-
-    Reads the live scheduler state — never recomputes from the cron string,
-    since APScheduler may have paused, rescheduled, or removed jobs since the
-    last :func:`reload_jobs` call. Jobs whose ids don't match the
-    ``source-<int>`` convention are ignored. A ``None`` value means the job
-    exists but is currently paused.
+    Reads the live scheduler state rather than recomputing from the cron
+    string: APScheduler may have paused or rescheduled the job since the last
+    :func:`reload_jobs` call. A ``None`` return means no round job is
+    registered or the job is paused.
     """
     if scheduler is None:
-        return {}
-
-    result: dict[int, datetime | None] = {}
-    for job in scheduler.get_jobs():
-        job_id = str(job.id)
-        if not job_id.startswith(_JOB_ID_PREFIX):
-            continue
-        try:
-            source_id = int(job_id[len(_JOB_ID_PREFIX) :])
-        except ValueError:
-            continue
-        result[source_id] = job.next_run_time
-    return result
+        return None
+    job = scheduler.get_job(ROUND_JOB_ID)
+    if job is None:
+        return None
+    next_run: datetime | None = job.next_run_time
+    return next_run
 
 
 def build_scheduler(settings: Settings) -> AsyncIOScheduler:  # noqa: ARG001
@@ -76,41 +71,86 @@ def build_scheduler(settings: Settings) -> AsyncIOScheduler:  # noqa: ARG001
 
 
 def reload_jobs(scheduler: AsyncIOScheduler, settings: Settings) -> None:
-    """Sync scheduler jobs with the current set of enabled sources.
+    """Ensure the single round job exists with the current cron expression.
 
-    Removes all existing jobs and re-adds one per enabled source row.
+    Idempotent: replaces any existing round job with one matching
+    ``settings.round_cron``. Safe to call at boot and after config changes.
     """
-    scheduler.remove_all_jobs()
+    try:
+        trigger = CronTrigger.from_crontab(settings.round_cron)
+    except ValueError:
+        logger.warning(
+            "Invalid ARTIMESONE_ROUND_CRON %r, falling back to '*/30 * * * *'",
+            settings.round_cron,
+        )
+        trigger = CronTrigger.from_crontab("*/30 * * * *")
 
+    scheduler.add_job(
+        run_collection_round,
+        trigger,
+        args=(settings,),
+        id=ROUND_JOB_ID,
+        replace_existing=True,
+    )
+    logger.info("Scheduler reloaded: round job on %r", settings.round_cron)
+
+
+async def run_collection_round(settings: Settings) -> None:
+    """Execute one collection round.
+
+    Selects up to :data:`SOURCES_PER_ROUND` enabled sources whose
+    ``last_check_at`` is NULL or older than :data:`SOURCE_COOLDOWN_HOURS`,
+    oldest first (NULLs first). Each selected source is processed by
+    :func:`run_source_collection`; ``last_check_at`` is bumped after every
+    source regardless of outcome so broken sources don't freeze rotation.
+    """
     db_path = settings.data_dir / "artimesone.db"
+    # Compute the cutoff in Python so we can compare ISO strings with
+    # matching formats. SQLite's datetime() uses a space separator, but
+    # datetime.isoformat() uses 'T' — mixing the two breaks lexicographic
+    # comparison against stored timestamps.
+    cutoff_iso = (datetime.now(UTC) - timedelta(hours=SOURCE_COOLDOWN_HOURS)).isoformat()
+    selection_conn = get_connection(db_path)
+    try:
+        rows = selection_conn.execute(
+            """
+            SELECT id FROM sources
+            WHERE enabled = 1
+              AND (last_check_at IS NULL OR last_check_at < ?)
+            ORDER BY last_check_at IS NULL DESC, last_check_at ASC
+            LIMIT ?
+            """,
+            (cutoff_iso, SOURCES_PER_ROUND),
+        ).fetchall()
+        source_ids = [row["id"] for row in rows]
+    finally:
+        selection_conn.close()
+
+    if not source_ids:
+        logger.debug("Collection round: no eligible sources")
+        return
+
+    logger.info("Collection round: processing %d source(s): %s", len(source_ids), source_ids)
+
+    for source_id in source_ids:
+        try:
+            await run_source_collection(source_id, settings)
+        except Exception:
+            logger.exception("run_source_collection raised for source %s", source_id)
+        finally:
+            _mark_source_checked(db_path, source_id)
+
+
+def _mark_source_checked(db_path: Path, source_id: int) -> None:
+    """Update ``sources.last_check_at`` for *source_id* to now (UTC)."""
+    now_iso = datetime.now(UTC).isoformat()
     conn = get_connection(db_path)
     try:
-        rows = conn.execute("SELECT id, type, config FROM sources WHERE enabled = 1").fetchall()
-        for row in rows:
-            source_id: int = row["id"]
-            config_str: str = row["config"]
-            try:
-                config: dict[str, object] = json.loads(config_str)
-            except (json.JSONDecodeError, TypeError):
-                config = {}
-            poll_cron = str(config.get("poll_cron", DEFAULT_POLL_CRON))
-            try:
-                trigger = CronTrigger.from_crontab(poll_cron)
-            except ValueError:
-                logger.warning(
-                    "Invalid cron expression %r for source %s, using default",
-                    poll_cron,
-                    source_id,
-                )
-                trigger = CronTrigger.from_crontab(DEFAULT_POLL_CRON)
-            scheduler.add_job(
-                run_source_collection,
-                trigger,
-                args=(source_id, settings),
-                id=f"source-{source_id}",
-                replace_existing=True,
-            )
-        logger.info("Scheduler reloaded: %d source job(s)", len(rows))
+        conn.execute(
+            "UPDATE sources SET last_check_at = ? WHERE id = ?",
+            (now_iso, source_id),
+        )
+        conn.commit()
     finally:
         conn.close()
 

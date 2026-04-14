@@ -1,10 +1,10 @@
 """Collection run log route — /runs.
 
-Renders two sections:
+Renders:
 
-1. **Schedule** — one row per source with next-run time (from APScheduler),
-   last-run status, and time since last run. Covers both enabled and disabled
-   sources so the user can diagnose "why isn't this updating?" at a glance.
+1. **Schedule** — a single "next round" timestamp (from APScheduler) plus one
+   row per source showing ``last_check_at`` and the most recent run status, so
+   the user can diagnose "why isn't this updating?" at a glance.
 2. **Recent runs** — the historical ``collection_runs`` log, newest first.
 """
 
@@ -17,21 +17,18 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ...app import get_db
-from ...scheduler import get_next_run_times
+from ...scheduler import get_next_round_time
 
 router = APIRouter(prefix="/runs")
 
 
 def _build_schedule(
     conn: sqlite3.Connection,
-    request: Request,
 ) -> list[dict[str, Any]]:
     """Return per-source schedule rows for the Schedule section."""
-    next_runs = get_next_run_times(request.app.state.scheduler)
-
     rows = conn.execute(
         """
-        SELECT s.id, s.name, s.enabled,
+        SELECT s.id, s.name, s.enabled, s.last_check_at,
                (SELECT status FROM collection_runs
                 WHERE source_id = s.id
                 ORDER BY started_at DESC LIMIT 1) AS last_status,
@@ -48,7 +45,7 @@ def _build_schedule(
             "id": r["id"],
             "name": r["name"],
             "enabled": bool(r["enabled"]),
-            "next_run": next_runs.get(r["id"]),
+            "last_check_at": r["last_check_at"],
             "last_status": r["last_status"],
             "last_at": r["last_at"],
         }
@@ -62,7 +59,8 @@ async def list_runs(
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
 ) -> HTMLResponse:
     """Render the Schedule section and the collection run log."""
-    schedule = _build_schedule(conn, request)
+    schedule = _build_schedule(conn)
+    next_round = get_next_round_time(request.app.state.scheduler)
 
     rows = conn.execute(
         """
@@ -95,5 +93,5 @@ async def list_runs(
     return templates.TemplateResponse(  # type: ignore[no-any-return]
         request,
         "runs.html",
-        {"schedule": schedule, "runs": runs},
+        {"schedule": schedule, "runs": runs, "next_round": next_round},
     )

@@ -113,7 +113,19 @@ class YouTubeChannelCollector:
         if uploads_playlist_id is None:
             return DiscoverResult(0, 0, error="Channel not found")
 
-        playlist_items = await client.list_playlist_items(uploads_playlist_id, max_results=20)
+        # Cold-start vs rolling cap: first visit pulls up to initial_video_cap
+        # videos; subsequent visits pull at most rolling_video_cap new ones.
+        existing_count_row = conn.execute(
+            "SELECT COUNT(*) FROM items WHERE source_id = ?",
+            (source["id"],),
+        ).fetchone()
+        is_cold_start = (existing_count_row[0] or 0) == 0
+        max_results = (
+            settings.initial_video_cap if is_cold_start else settings.rolling_video_cap
+        )
+        playlist_items = await client.list_playlist_items(
+            uploads_playlist_id, max_results=max_results
+        )
 
         # Extract video IDs in API order (newest first).
         video_ids = [
