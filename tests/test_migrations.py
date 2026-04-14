@@ -16,10 +16,11 @@ def _in_memory_conn() -> sqlite3.Connection:
 
 
 def test_migrations_create_all_tables() -> None:
-    """Migration 0001 creates every expected table."""
+    """Migrations create every expected table."""
     conn = _in_memory_conn()
     applied = apply_migrations(conn)
     assert "0001_initial.sql" in applied
+    assert "0002_video_stats.sql" in applied
 
     rows = conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
@@ -95,6 +96,17 @@ def test_items_fts_title_update_trigger() -> None:
     conn.execute("UPDATE items SET title = 'New Title' WHERE id = 1")
     row = conn.execute("SELECT title FROM items_fts WHERE rowid = 1").fetchone()
     assert row["title"] == "New Title"
+    conn.close()
+
+
+def test_items_has_stats_columns() -> None:
+    """Migration 0002 adds view_count and like_count columns to items."""
+    conn = _in_memory_conn()
+    apply_migrations(conn)
+
+    cols = {row["name"] for row in conn.execute("PRAGMA table_info(items)").fetchall()}
+    assert "view_count" in cols
+    assert "like_count" in cols
     conn.close()
 
 

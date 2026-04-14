@@ -73,6 +73,8 @@ def _enrich_item_row(
         "source_name": row["source_name"],
         "duration_seconds": metadata.get("duration_seconds"),
         "thumbnail_url": metadata.get("thumbnail_url"),
+        "view_count": row["view_count"],
+        "like_count": row["like_count"],
         "summary": _read_md_text(content_dir, row["summary_path"]),
         "topics": _fetch_item_tags(conn, row["id"]),
     }
@@ -150,6 +152,7 @@ def _query_items(
         f"""
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                i.status, i.metadata, i.summary_path, i.created_at,
+               i.view_count, i.like_count,
                s.id AS source_id, s.name AS source_name
         FROM items i
         JOIN sources s ON s.id = i.source_id
@@ -202,6 +205,7 @@ def _fts_search(
             """
             SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                    i.status, i.metadata, i.summary_path, i.created_at,
+                   i.view_count, i.like_count,
                    s.id AS source_id, s.name AS source_name,
                    snippet(items_fts, 1, '<mark>', '</mark>', '...', 30) AS search_snippet
             FROM items_fts

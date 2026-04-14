@@ -58,7 +58,6 @@ _SAMPLE_APIFY_ITEM = {
         }
     ],
     "description": "A great video about testing.",
-    "viewCount": 12345,
     "duration": 600,
 }
 

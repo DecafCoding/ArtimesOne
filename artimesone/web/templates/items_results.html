@@ -29,6 +29,12 @@
             {% if item.published_at %}
               <span>{{ item.published_at | relative_date }}</span>
             {% endif %}
+            {% if item.view_count %}
+              <span>{{ item.view_count | format_count }} views</span>
+            {% endif %}
+            {% if item.like_count %}
+              <span>{{ item.like_count | format_count }} likes</span>
+            {% endif %}
           </div>
 
           {% if item.search_snippet %}

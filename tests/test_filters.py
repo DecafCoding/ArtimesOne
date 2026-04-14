@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from artimesone.web.filters import relative_time
+from artimesone.web.filters import format_count, relative_time
 
 
 def _delta(**kwargs: float) -> datetime:
@@ -60,3 +60,31 @@ def test_relative_time_accepts_iso_string() -> None:
 def test_relative_time_naive_datetime_treated_as_utc() -> None:
     naive = datetime.now(UTC).replace(tzinfo=None) + timedelta(minutes=10)
     assert relative_time(naive) == "in 10m"
+
+
+def test_format_count_none_and_negative() -> None:
+    assert format_count(None) == ""
+    assert format_count(-1) == ""
+
+
+def test_format_count_below_thousand() -> None:
+    assert format_count(0) == "0"
+    assert format_count(42) == "42"
+    assert format_count(999) == "999"
+
+
+def test_format_count_thousands() -> None:
+    assert format_count(1000) == "1K"
+    assert format_count(1234) == "1.2K"
+    assert format_count(12_345) == "12.3K"
+    assert format_count(123_456) == "123K"  # no decimal for 3-digit scaled
+
+
+def test_format_count_millions() -> None:
+    assert format_count(1_000_000) == "1M"
+    assert format_count(1_500_000) == "1.5M"
+    assert format_count(12_300_000) == "12.3M"
+
+
+def test_format_count_billions() -> None:
+    assert format_count(1_500_000_000) == "1.5B"

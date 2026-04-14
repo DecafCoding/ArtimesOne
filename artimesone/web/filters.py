@@ -104,6 +104,31 @@ def relative_time(value: datetime | str | None) -> str:
     return f"in {span}" if future else f"{span} ago"
 
 
+def format_count(value: int | None) -> str:
+    """Format a non-negative integer with K/M/B suffix (``1234`` → ``1.2K``).
+
+    Returns an empty string for ``None`` or negative values. Values under 1000
+    are rendered as-is. Suffixed values show one decimal unless it's zero
+    (``1.0K`` → ``1K``). Uses 1000-based units (not KiB).
+    """
+    if value is None or value < 0:
+        return ""
+    if value < 1000:
+        return str(value)
+    for unit, threshold in (("K", 1_000), ("M", 1_000_000), ("B", 1_000_000_000)):
+        next_threshold = threshold * 1000
+        if value < next_threshold:
+            scaled = value / threshold
+            if scaled >= 100:
+                return f"{int(scaled)}{unit}"
+            formatted = f"{scaled:.1f}"
+            if formatted.endswith(".0"):
+                formatted = formatted[:-2]
+            return f"{formatted}{unit}"
+    # Values ≥ 1T: fall back to B with integer scaling.
+    return f"{value // 1_000_000_000}B"
+
+
 def first_paragraph(text: str | None) -> str:
     """Extract the first non-empty paragraph from *text*.
 
@@ -121,6 +146,7 @@ def first_paragraph(text: str | None) -> str:
 def register_filters(env: Environment) -> None:
     """Register all custom filters on a Jinja2 environment."""
     env.filters["format_duration"] = format_duration
+    env.filters["format_count"] = format_count
     env.filters["relative_date"] = relative_date
     env.filters["relative_time"] = relative_time
     env.filters["first_paragraph"] = first_paragraph
