@@ -35,9 +35,6 @@ class ApifyTranscriptResult:
     description: str | None
     """Video description from Apify."""
 
-    view_count: int | None
-    """View count."""
-
     duration_seconds: int | None
     """Duration (may be more accurate than the YouTube Data API value)."""
 
@@ -106,7 +103,6 @@ class ApifyClient:
             return ApifyTranscriptResult(
                 transcript=None,
                 description=None,
-                view_count=None,
                 duration_seconds=None,
             )
 
@@ -150,16 +146,6 @@ class ApifyClient:
 
         description = item.get("description") if isinstance(item.get("description"), str) else None
 
-        raw_views = item.get("viewCount")
-        view_count: int | None = None
-        if isinstance(raw_views, int):
-            view_count = raw_views
-        elif isinstance(raw_views, str):
-            try:
-                view_count = int(raw_views)
-            except ValueError:
-                pass
-
         raw_duration = item.get("duration")
         duration_seconds: int | None = None
         if isinstance(raw_duration, int):
@@ -173,7 +159,6 @@ class ApifyClient:
         return ApifyTranscriptResult(
             transcript=transcript,
             description=description,
-            view_count=view_count,
             duration_seconds=duration_seconds,
         )
 

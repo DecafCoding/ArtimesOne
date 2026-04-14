@@ -72,7 +72,6 @@ _SAMPLE_ITEM = {
         }
     ],
     "description": "A great video about testing.",
-    "viewCount": 12345,
     "duration": 600,
 }
 
@@ -85,7 +84,6 @@ async def test_fetch_transcript_success() -> None:
         result = await client.fetch_transcript("https://www.youtube.com/watch?v=abc")
         assert result.transcript == "Welcome to the video\nToday we discuss testing"
         assert result.description == "A great video about testing."
-        assert result.view_count == 12345
         assert result.duration_seconds == 600
     finally:
         await client.close()
@@ -112,7 +110,6 @@ async def test_fetch_transcript_empty_dataset() -> None:
         result = await client.fetch_transcript("https://www.youtube.com/watch?v=abc")
         assert result.transcript is None
         assert result.description is None
-        assert result.view_count is None
         assert result.duration_seconds is None
     finally:
         await client.close()

@@ -37,7 +37,6 @@ _SAMPLE_APIFY_ITEM = {
         }
     ],
     "description": "A great video about testing.",
-    "viewCount": 12345,
     "duration": 600,
 }
 
@@ -145,8 +144,8 @@ async def test_fetch_success(tmp_path: Path) -> None:
 
     # Metadata merged.
     meta = json.loads(row["metadata"])
-    assert meta["view_count"] == 12345
     assert meta["description"] == "A great video about testing."
+    assert "view_count" not in meta  # moved to first-class column
 
     conn.close()
 

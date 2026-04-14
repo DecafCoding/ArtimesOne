@@ -46,6 +46,18 @@ def _pick_thumbnail(snippet: dict[str, object]) -> str | None:
     return None
 
 
+def _parse_stat_count(value: object) -> int | None:
+    """Coerce a YouTube statistics count into int, returning None if absent."""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
+
+
 class YouTubeChannelCollector:
     """Collector for YouTube channels (discovery phase only)."""
 
@@ -147,6 +159,9 @@ class YouTubeChannelCollector:
 
                 snippet = detail.get("snippet", {})
                 content_details = detail.get("contentDetails", {})
+                statistics = detail.get("statistics", {})
+                if not isinstance(statistics, dict):
+                    statistics = {}
                 duration_str = content_details.get("duration", "")
                 duration_seconds = parse_iso8601_duration(duration_str) if duration_str else None
 
@@ -155,6 +170,8 @@ class YouTubeChannelCollector:
                 url = f"https://www.youtube.com/watch?v={vid}"
                 thumbnail_url = _pick_thumbnail(snippet)
                 description = str(snippet.get("description", ""))
+                view_count = _parse_stat_count(statistics.get("viewCount"))
+                like_count = _parse_stat_count(statistics.get("likeCount"))
 
                 metadata = json.dumps(
                     {
@@ -175,8 +192,9 @@ class YouTubeChannelCollector:
                     """
                     INSERT OR IGNORE INTO items
                         (source_id, external_id, title, url, published_at, fetched_at,
-                         metadata, status, retry_count, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+                         metadata, status, view_count, like_count,
+                         retry_count, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
                     """,
                     (
                         source["id"],
@@ -187,6 +205,8 @@ class YouTubeChannelCollector:
                         now_iso,
                         metadata,
                         status,
+                        view_count,
+                        like_count,
                         now_iso,
                         now_iso,
                     ),
@@ -210,7 +230,7 @@ class YouTubeChannelCollector:
         3. Write transcript to ``content/transcripts/youtube/{video_id}.md``
            with YAML front matter.
         4. Update the item row: ``status='transcribed'``, ``transcript_path``
-           set, metadata JSON updated with Apify fields.
+           set, metadata JSON updated with description + duration.
         5. On failure: increment ``retry_count``, set ``status='error'``,
            record error in metadata.
         """
@@ -262,8 +282,6 @@ class YouTubeChannelCollector:
             metadata = {}
         if result.description is not None:
             metadata["description"] = result.description[:500]
-        if result.view_count is not None:
-            metadata["view_count"] = result.view_count
         if result.duration_seconds is not None:
             metadata["duration_seconds"] = result.duration_seconds
 

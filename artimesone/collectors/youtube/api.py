@@ -110,7 +110,7 @@ class YouTubeDataAPIClient:
         self,
         video_ids: list[str],
     ) -> dict[str, dict[str, Any]]:
-        """Batch-fetch video details (``contentDetails`` + ``snippet``).
+        """Batch-fetch video details (``contentDetails`` + ``snippet`` + ``statistics``).
 
         Automatically splits into chunks of 50 (the API maximum).  Returns a
         dict keyed by video ID.
@@ -122,7 +122,7 @@ class YouTubeDataAPIClient:
                 "/videos",
                 params={
                     "id": ",".join(batch),
-                    "part": "contentDetails,snippet",
+                    "part": "contentDetails,snippet,statistics",
                 },
             )
             for item in data.get("items", []):

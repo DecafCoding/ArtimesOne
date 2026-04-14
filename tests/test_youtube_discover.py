@@ -82,7 +82,7 @@ def _mock_youtube_api(
 
 @respx.mock
 async def test_discover_new_videos(tmp_path: Path) -> None:
-    """First run discovers new videos and inserts them."""
+    """First run discovers new videos and inserts them, capturing stats."""
     conn = _make_conn(tmp_path)
     settings = _make_settings(tmp_path)
     source = _seed_source(conn)
@@ -93,10 +93,12 @@ async def test_discover_new_videos(tmp_path: Path) -> None:
             "vid1": {
                 "snippet": {"title": "Video One", "publishedAt": "2026-01-01T00:00:00Z"},
                 "contentDetails": {"duration": "PT10M"},
+                "statistics": {"viewCount": "12345", "likeCount": "678"},
             },
             "vid2": {
                 "snippet": {"title": "Video Two", "publishedAt": "2026-01-01T01:00:00Z"},
                 "contentDetails": {"duration": "PT20M"},
+                "statistics": {"viewCount": "9"},  # likes hidden
             },
         },
     )
@@ -108,8 +110,17 @@ async def test_discover_new_videos(tmp_path: Path) -> None:
     assert result.filtered_out == 0
     assert result.error is None
 
-    rows = conn.execute("SELECT * FROM items WHERE source_id = ?", (source["id"],)).fetchall()
+    rows = conn.execute(
+        "SELECT external_id, view_count, like_count FROM items "
+        "WHERE source_id = ? ORDER BY external_id",
+        (source["id"],),
+    ).fetchall()
     assert len(rows) == 2
+    by_id = {r["external_id"]: r for r in rows}
+    assert by_id["vid1"]["view_count"] == 12345
+    assert by_id["vid1"]["like_count"] == 678
+    assert by_id["vid2"]["view_count"] == 9
+    assert by_id["vid2"]["like_count"] is None
     conn.close()
 
 
