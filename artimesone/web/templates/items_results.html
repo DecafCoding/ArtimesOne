@@ -3,50 +3,52 @@
 {% if not items %}
   <p>No items found.</p>
 {% else %}
-  {% for item in items %}
-    <div class="item-card">
-      {% if item.thumbnail_url %}
-        <img class="item-thumb" src="{{ item.thumbnail_url }}" alt="" loading="lazy">
-      {% else %}
-        <div class="item-thumb-placeholder"></div>
-      {% endif %}
-
-      <div class="item-body">
-        <h3>
-          {% if item.status == 'skipped_too_long' %}
-            <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
-          {% else %}
-            <a href="/items/{{ item.id }}">{{ item.title }}</a>
+  <div class="video-grid">
+    {% for item in items %}
+      <article class="video-card">
+        <div class="video-card-thumb">
+          {% if item.thumbnail_url %}
+            <img src="{{ item.thumbnail_url }}" alt="" loading="lazy">
           {% endif %}
-        </h3>
-
-        <div class="item-meta">
-          <span><a href="/sources/{{ item.source_id }}">{{ item.source_name }}</a></span>
           {% if item.duration_seconds %}
-            <span>{{ item.duration_seconds | format_duration }}</span>
+            <span class="video-card-duration">{{ item.duration_seconds | format_duration }}</span>
           {% endif %}
-          {% if item.published_at %}
-            <span>{{ item.published_at | relative_date }}</span>
-          {% endif %}
-          <span class="badge-status badge-{{ item.status }}">{{ item.status | replace('_', ' ') }}</span>
         </div>
 
-        {% if item.search_snippet %}
-          <p class="item-summary">{{ item.search_snippet | safe }}</p>
-        {% elif item.status == 'skipped_too_long' %}
-          <span class="badge-too-long">Too long</span>
-        {% elif item.summary %}
-          <p class="item-summary">{{ item.summary | first_paragraph }}</p>
-        {% endif %}
+        <div class="video-card-body">
+          <h3 class="video-card-title">
+            {% if item.status == 'skipped_too_long' %}
+              <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+            {% else %}
+              <a href="/items/{{ item.id }}">{{ item.title }}</a>
+            {% endif %}
+          </h3>
 
-        {% if item.topics %}
-          <div class="topic-chips">
-            {% for tag in item.topics %}
-              <a class="topic-chip" href="/topics/{{ tag.slug }}">{{ tag.name }}</a>
-            {% endfor %}
+          <div class="video-card-meta">
+            <span><a href="/sources/{{ item.source_id }}">{{ item.source_name }}</a></span>
+            {% if item.published_at %}
+              <span>{{ item.published_at | relative_date }}</span>
+            {% endif %}
           </div>
-        {% endif %}
-      </div>
-    </div>
-  {% endfor %}
+
+          {% if item.search_snippet %}
+            <p class="video-card-summary">{{ item.search_snippet | safe }}</p>
+          {% elif item.status == 'skipped_too_long' %}
+            <p class="video-card-summary"><span class="badge-too-long">Too long</span></p>
+          {% elif item.summary %}
+            <p class="video-card-summary">{{ item.summary | first_paragraph }}</p>
+          {% endif %}
+
+          <div class="video-card-badges">
+            <span class="badge-status badge-{{ item.status }}">{{ item.status | replace('_', ' ') }}</span>
+            {% if item.topics %}
+              {% for tag in item.topics %}
+                <a class="topic-chip" href="/topics/{{ tag.slug }}">{{ tag.name }}</a>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
 {% endif %}
