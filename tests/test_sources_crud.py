@@ -52,15 +52,15 @@ async def test_enable_disable_delete(client: httpx.AsyncClient) -> None:
     assert match is not None
     source_id = match.group(1)
 
-    # Disable
+    # Disable → the row now renders an Enable button (form action ends in /enable)
     r = await client.post(f"/sources/{source_id}/disable", follow_redirects=True)
     assert r.status_code == 200
-    assert "no" in r.text  # enabled column shows "no"
+    assert f"/sources/{source_id}/enable" in r.text
 
-    # Enable
+    # Enable → the row renders a Disable button again
     r = await client.post(f"/sources/{source_id}/enable", follow_redirects=True)
     assert r.status_code == 200
-    assert "yes" in r.text
+    assert f"/sources/{source_id}/disable" in r.text
 
     # Delete
     r = await client.post(f"/sources/{source_id}/delete", follow_redirects=True)

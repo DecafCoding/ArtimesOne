@@ -1,4 +1,4 @@
-"""Unit tests for scheduler.get_next_run_times."""
+"""Unit tests for scheduler.get_next_round_time."""
 
 from __future__ import annotations
 
@@ -6,43 +6,28 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
-from artimesone.scheduler import get_next_run_times
+from artimesone.scheduler import ROUND_JOB_ID, get_next_round_time
 
 
 def _stub_scheduler(jobs: list[Any]) -> Any:
-    return SimpleNamespace(get_jobs=lambda: jobs)
+    job_map = {job.id: job for job in jobs}
+    return SimpleNamespace(get_job=lambda job_id: job_map.get(job_id))
 
 
-def test_get_next_run_times_none_scheduler() -> None:
-    assert get_next_run_times(None) == {}
+def test_get_next_round_time_none_scheduler() -> None:
+    assert get_next_round_time(None) is None
 
 
-def test_get_next_run_times_empty() -> None:
-    assert get_next_run_times(_stub_scheduler([])) == {}
+def test_get_next_round_time_no_round_job() -> None:
+    assert get_next_round_time(_stub_scheduler([])) is None
 
 
-def test_get_next_run_times_maps_source_jobs() -> None:
-    dt1 = datetime(2026, 4, 13, 18, 0, tzinfo=UTC)
-    dt2 = datetime(2026, 4, 13, 19, 30, tzinfo=UTC)
-    jobs = [
-        SimpleNamespace(id="source-1", next_run_time=dt1),
-        SimpleNamespace(id="source-7", next_run_time=dt2),
-    ]
-    result = get_next_run_times(_stub_scheduler(jobs))
-    assert result == {1: dt1, 7: dt2}
+def test_get_next_round_time_returns_job_next_run() -> None:
+    dt = datetime(2026, 4, 13, 18, 0, tzinfo=UTC)
+    jobs = [SimpleNamespace(id=ROUND_JOB_ID, next_run_time=dt)]
+    assert get_next_round_time(_stub_scheduler(jobs)) == dt
 
 
-def test_get_next_run_times_paused_job_yields_none() -> None:
-    jobs = [SimpleNamespace(id="source-3", next_run_time=None)]
-    result = get_next_run_times(_stub_scheduler(jobs))
-    assert result == {3: None}
-
-
-def test_get_next_run_times_ignores_non_source_jobs() -> None:
-    jobs = [
-        SimpleNamespace(id="cleanup", next_run_time=datetime.now(UTC)),
-        SimpleNamespace(id="source-abc", next_run_time=datetime.now(UTC)),
-        SimpleNamespace(id="source-5", next_run_time=datetime.now(UTC)),
-    ]
-    result = get_next_run_times(_stub_scheduler(jobs))
-    assert set(result.keys()) == {5}
+def test_get_next_round_time_paused_job_returns_none() -> None:
+    jobs = [SimpleNamespace(id=ROUND_JOB_ID, next_run_time=None)]
+    assert get_next_round_time(_stub_scheduler(jobs)) is None

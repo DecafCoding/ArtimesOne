@@ -17,7 +17,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ...app import get_db, get_settings
 from ...config import Settings
-from ...scheduler import reload_jobs
 
 router = APIRouter(prefix="/sources")
 
@@ -53,12 +52,11 @@ async def list_sources(
 async def add_source(
     request: Request,
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
-    settings: Annotated[Settings, Depends(get_settings)],
     type: Annotated[str, Form()],
     external_id: Annotated[str, Form()],
     name: Annotated[str, Form()],
 ) -> HTMLResponse | RedirectResponse:
-    """Insert a new source row and reload the scheduler."""
+    """Insert a new source row. Picked up automatically on the next round."""
     now_iso = datetime.now(UTC).isoformat()
     config = json.dumps({"channel_id": external_id})
     try:
@@ -75,57 +73,47 @@ async def add_source(
             request, conn, message=f"A source with external ID '{external_id}' already exists."
         )
 
-    reload_jobs(request.app.state.scheduler, settings)
     return RedirectResponse("/sources", status_code=303)
 
 
 @router.post("/{source_id}/enable")
 async def enable_source(
-    request: Request,
     source_id: int,
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
-    settings: Annotated[Settings, Depends(get_settings)],
 ) -> RedirectResponse:
-    """Enable a source and reload the scheduler."""
+    """Enable a source. Picked up automatically on the next round."""
     now_iso = datetime.now(UTC).isoformat()
     conn.execute(
         "UPDATE sources SET enabled = 1, updated_at = ? WHERE id = ?",
         (now_iso, source_id),
     )
     conn.commit()
-    reload_jobs(request.app.state.scheduler, settings)
     return RedirectResponse("/sources", status_code=303)
 
 
 @router.post("/{source_id}/disable")
 async def disable_source(
-    request: Request,
     source_id: int,
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
-    settings: Annotated[Settings, Depends(get_settings)],
 ) -> RedirectResponse:
-    """Disable a source and reload the scheduler."""
+    """Disable a source. The round selection filter excludes it automatically."""
     now_iso = datetime.now(UTC).isoformat()
     conn.execute(
         "UPDATE sources SET enabled = 0, updated_at = ? WHERE id = ?",
         (now_iso, source_id),
     )
     conn.commit()
-    reload_jobs(request.app.state.scheduler, settings)
     return RedirectResponse("/sources", status_code=303)
 
 
 @router.post("/{source_id}/delete")
 async def delete_source(
-    request: Request,
     source_id: int,
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
-    settings: Annotated[Settings, Depends(get_settings)],
 ) -> RedirectResponse:
-    """Delete a source (cascades to items) and reload the scheduler."""
+    """Delete a source (cascades to items)."""
     conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
     conn.commit()
-    reload_jobs(request.app.state.scheduler, settings)
     return RedirectResponse("/sources", status_code=303)
 
 

@@ -53,8 +53,11 @@ def _seed_source(conn: sqlite3.Connection) -> dict[str, object]:
 def _mock_youtube_api(
     playlist_video_ids: list[str],
     video_details: dict[str, dict[str, object]],
-) -> None:
-    """Set up respx mocks for the standard discover() call sequence."""
+) -> respx.Route:
+    """Set up respx mocks for the standard discover() call sequence.
+
+    Returns the playlistItems route so callers can inspect its recorded calls.
+    """
     # channels.list → uploads playlist ID
     respx.get(f"{_YT_BASE}/channels").mock(
         return_value=httpx.Response(
@@ -67,7 +70,7 @@ def _mock_youtube_api(
     playlist_items = [
         {"contentDetails": {"videoId": vid}, "snippet": {}} for vid in playlist_video_ids
     ]
-    respx.get(f"{_YT_BASE}/playlistItems").mock(
+    playlist_route = respx.get(f"{_YT_BASE}/playlistItems").mock(
         return_value=httpx.Response(200, json={"items": playlist_items})
     )
 
@@ -78,6 +81,8 @@ def _mock_youtube_api(
     respx.get(f"{_YT_BASE}/videos").mock(
         return_value=httpx.Response(200, json={"items": detail_items})
     )
+
+    return playlist_route
 
 
 @respx.mock
@@ -232,4 +237,85 @@ async def test_discover_no_api_key(tmp_path: Path) -> None:
     assert result.discovered == 0
     assert result.filtered_out == 0
     assert result.error == "YouTube API key not configured"
+    conn.close()
+
+
+@respx.mock
+async def test_cold_start_uses_initial_video_cap(tmp_path: Path) -> None:
+    """A source with zero existing items requests initial_video_cap results."""
+    conn = _make_conn(tmp_path)
+    settings = Settings(
+        data_dir=tmp_path / "data",
+        content_dir=tmp_path / "content",
+        youtube_api_key="fake",
+        initial_video_cap=17,
+        rolling_video_cap=3,
+        _env_file=None,  # type: ignore[call-arg]
+    )
+    source = _seed_source(conn)
+
+    playlist_route = _mock_youtube_api(
+        playlist_video_ids=["vid1"],
+        video_details={
+            "vid1": {
+                "snippet": {"title": "V1", "publishedAt": "2026-01-01T00:00:00Z"},
+                "contentDetails": {"duration": "PT5M"},
+            },
+        },
+    )
+
+    collector = YouTubeChannelCollector()
+    await collector.discover(source, conn, settings)  # type: ignore[arg-type]
+
+    assert playlist_route.called
+    max_results_param = playlist_route.calls.last.request.url.params.get("maxResults")
+    assert max_results_param == "17"
+    conn.close()
+
+
+@respx.mock
+async def test_rolling_round_uses_rolling_video_cap(tmp_path: Path) -> None:
+    """After the first run, subsequent runs request rolling_video_cap results."""
+    conn = _make_conn(tmp_path)
+    settings = Settings(
+        data_dir=tmp_path / "data",
+        content_dir=tmp_path / "content",
+        youtube_api_key="fake",
+        initial_video_cap=17,
+        rolling_video_cap=3,
+        _env_file=None,  # type: ignore[call-arg]
+    )
+    source = _seed_source(conn)
+
+    # Cold start: seed an existing item for the source so the next discover
+    # takes the rolling branch.
+    now = "2026-01-01T00:00:00+00:00"
+    conn.execute(
+        """
+        INSERT INTO items
+            (source_id, external_id, title, url, fetched_at, metadata, status,
+             retry_count, created_at, updated_at)
+        VALUES (?, 'seeded', 'Seeded', 'https://y/seeded', ?, '{}', 'discovered',
+                0, ?, ?)
+        """,
+        (source["id"], now, now, now),
+    )
+    conn.commit()
+
+    playlist_route = _mock_youtube_api(
+        playlist_video_ids=["vid1"],
+        video_details={
+            "vid1": {
+                "snippet": {"title": "V1", "publishedAt": "2026-01-02T00:00:00Z"},
+                "contentDetails": {"duration": "PT5M"},
+            },
+        },
+    )
+
+    collector = YouTubeChannelCollector()
+    await collector.discover(source, conn, settings)  # type: ignore[arg-type]
+
+    assert playlist_route.called
+    max_results_param = playlist_route.calls.last.request.url.params.get("maxResults")
+    assert max_results_param == "3"
     conn.close()
