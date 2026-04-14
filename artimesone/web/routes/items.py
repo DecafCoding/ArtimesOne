@@ -58,6 +58,7 @@ def _fetch_item_tags(conn: sqlite3.Connection, item_id: int) -> list[dict[str, s
 def _enrich_item_row(
     row: sqlite3.Row,
     conn: sqlite3.Connection,
+    content_dir: Path,
 ) -> dict[str, Any]:
     """Build a template-ready dict from an items row."""
     metadata = _parse_metadata(row["metadata"])
@@ -72,7 +73,7 @@ def _enrich_item_row(
         "source_name": row["source_name"],
         "duration_seconds": metadata.get("duration_seconds"),
         "thumbnail_url": metadata.get("thumbnail_url"),
-        "summary": None,
+        "summary": _read_md_text(content_dir, row["summary_path"]),
         "topics": _fetch_item_tags(conn, row["id"]),
     }
 
@@ -101,12 +102,13 @@ def _read_md_text(content_dir: Path, rel_path: str | None) -> str | None:
 async def list_items(
     request: Request,
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
     q: str | None = None,
     topic: str | None = None,
     status: str | None = None,
 ) -> HTMLResponse:
     """List all items, newest first, with optional filters."""
-    items = _query_items(conn, q=q, topic=topic, status=status)
+    items = _query_items(conn, settings.content_dir, q=q, topic=topic, status=status)
 
     templates = request.app.state.templates
     return templates.TemplateResponse(  # type: ignore[no-any-return]
@@ -118,6 +120,7 @@ async def list_items(
 
 def _query_items(
     conn: sqlite3.Connection,
+    content_dir: Path,
     *,
     q: str | None = None,
     topic: str | None = None,
@@ -157,7 +160,7 @@ def _query_items(
         (*params, limit),
     ).fetchall()
 
-    return [_enrich_item_row(r, conn) for r in rows]
+    return [_enrich_item_row(r, conn, content_dir) for r in rows]
 
 
 # ---------------------------------------------------------------------------
@@ -169,17 +172,18 @@ def _query_items(
 async def search_items(
     request: Request,
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
     q: str = "",
 ) -> HTMLResponse:
     """HTMX partial: return item cards matching an FTS5 query."""
     items: list[dict[str, Any]] = []
 
     if q.strip():
-        items = _fts_search(conn, q.strip())
+        items = _fts_search(conn, q.strip(), settings.content_dir)
 
     if not items:
         # Fall back to recent items when query is empty or FTS matched nothing.
-        items = _query_items(conn, limit=20)
+        items = _query_items(conn, settings.content_dir, limit=20)
 
     templates = request.app.state.templates
     return templates.TemplateResponse(  # type: ignore[no-any-return]
@@ -189,7 +193,9 @@ async def search_items(
     )
 
 
-def _fts_search(conn: sqlite3.Connection, query: str) -> list[dict[str, Any]]:
+def _fts_search(
+    conn: sqlite3.Connection, query: str, content_dir: Path
+) -> list[dict[str, Any]]:
     """Run an FTS5 search and return enriched item dicts with snippets."""
     try:
         rows = conn.execute(
@@ -213,7 +219,7 @@ def _fts_search(conn: sqlite3.Connection, query: str) -> list[dict[str, Any]]:
 
     items: list[dict[str, Any]] = []
     for r in rows:
-        item = _enrich_item_row(r, conn)
+        item = _enrich_item_row(r, conn, content_dir)
         item["search_snippet"] = r["search_snippet"]
         items.append(item)
     return items

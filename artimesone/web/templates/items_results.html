@@ -36,17 +36,8 @@
           {% elif item.status == 'skipped_too_long' %}
             <p class="video-card-summary"><span class="badge-too-long">Too long</span></p>
           {% elif item.summary %}
-            <p class="video-card-summary">{{ item.summary | first_paragraph }}</p>
+            <p class="video-card-summary">{{ item.summary | first_paragraph | truncate(200) }}</p>
           {% endif %}
-
-          <div class="video-card-badges">
-            <span class="badge-status badge-{{ item.status }}">{{ item.status | replace('_', ' ') }}</span>
-            {% if item.topics %}
-              {% for tag in item.topics %}
-                <a class="topic-chip" href="/topics/{{ tag.slug }}">{{ tag.name }}</a>
-              {% endfor %}
-            {% endif %}
-          </div>
         </div>
       </article>
     {% endfor %}
