@@ -190,7 +190,7 @@ async def search_items(
     """
     params: list[object] = []
     joins: list[str] = []
-    wheres: list[str] = ["items_fts MATCH ?"]
+    wheres: list[str] = ["items_fts MATCH ?", "i.status != 'skipped_short'"]
     params.append(escaped_query)
 
     if topic:
@@ -301,7 +301,7 @@ async def list_recent_items(
     """
     params: list[object] = []
     joins: list[str] = []
-    wheres: list[str] = ["i.created_at >= ?"]
+    wheres: list[str] = ["i.created_at >= ?", "i.status != 'skipped_short'"]
     params.append(cutoff)
 
     if topic:

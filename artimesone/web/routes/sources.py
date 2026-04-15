@@ -180,13 +180,14 @@ async def source_detail(
 
     source: dict[str, Any] = dict(source_row)
 
-    # Items for this source (newest first, limit 50).
+    # Items for this source (newest first, limit 50). Shorts are hidden.
     item_rows = conn.execute(
         """
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                i.status, i.metadata, i.summary_path, i.created_at
         FROM items i
         WHERE i.source_id = ?
+          AND i.status != 'skipped_short'
         ORDER BY COALESCE(i.published_at, i.fetched_at) DESC
         LIMIT 50
         """,

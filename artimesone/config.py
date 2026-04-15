@@ -62,13 +62,18 @@ class Settings(BaseSettings):
     # --- YouTube ---
     youtube_api_key: str | None = Field(default=None)
     max_video_duration_minutes: int = Field(default=60)
+    # Lower bound for video duration. Videos at or below this threshold are
+    # classified as Shorts, inserted with status='skipped_short', and hidden
+    # from every UI view. Default 180 seconds (3 minutes) matches YouTube's
+    # extended Shorts window.
+    min_video_duration_seconds: int = Field(default=180)
     # Cold-start cap: maximum number of videos discovered the first time a
     # channel is visited (before any items exist for that source).
     initial_video_cap: int = Field(default=20)
     # Rolling cap: maximum number of new videos discovered per round after
-    # the first visit. If a channel posts more than this in a single day,
-    # the overflow rolls into the next round.
-    rolling_video_cap: int = Field(default=3)
+    # the first visit. Bumped from 3 to 10 to account for Shorts being
+    # filtered out before they count toward the cap of "real" new videos.
+    rolling_video_cap: int = Field(default=10)
 
     # --- Scheduler ---
     # Single round job cron. Each round processes up to 5 sources whose

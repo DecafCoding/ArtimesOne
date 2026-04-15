@@ -189,7 +189,9 @@ async def topic_detail(
         for r in rollup_rows
     ]
 
-    # Items for this topic.
+    # Items for this topic. Shorts are never tagged (they never reach the
+    # summarize phase), but we filter here defensively so any stray tagging
+    # still hides them from the UI.
     item_rows = conn.execute(
         """
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
@@ -199,6 +201,7 @@ async def topic_detail(
         JOIN items i ON i.id = it.item_id
         JOIN sources s ON s.id = i.source_id
         WHERE it.tag_id = ?
+          AND i.status != 'skipped_short'
         ORDER BY COALESCE(i.published_at, i.fetched_at) DESC
         """,
         (tag["id"],),

@@ -129,8 +129,12 @@ def _query_items(
     status: str | None = None,
     limit: int = 50,
 ) -> list[dict[str, Any]]:
-    """Fetch items with optional filters, newest first."""
-    clauses: list[str] = []
+    """Fetch items with optional filters, newest first.
+
+    Always excludes status='skipped_short' — Shorts are tracked in the DB for
+    stop-at-known rotation but never surfaced in the UI.
+    """
+    clauses: list[str] = ["i.status != 'skipped_short'"]
     params: list[object] = []
 
     if topic:
@@ -144,9 +148,7 @@ def _query_items(
         clauses.append("i.status = ?")
         params.append(status)
 
-    where = ""
-    if clauses:
-        where = "WHERE " + " AND ".join(clauses)
+    where = "WHERE " + " AND ".join(clauses)
 
     rows = conn.execute(
         f"""
@@ -212,6 +214,7 @@ def _fts_search(
             JOIN items i ON i.id = items_fts.rowid
             JOIN sources s ON s.id = i.source_id
             WHERE items_fts MATCH ?
+              AND i.status != 'skipped_short'
             ORDER BY bm25(items_fts)
             LIMIT 20
             """,
