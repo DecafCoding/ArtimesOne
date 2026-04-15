@@ -154,6 +154,52 @@ async def test_items_nav_link(client: httpx.AsyncClient) -> None:
     assert '"/items"' in r.text or "/items" in r.text
 
 
+async def test_items_list_hides_shorts(client: httpx.AsyncClient, app: Any) -> None:
+    """GET /items never surfaces items with status='skipped_short'."""
+    conn = _get_db_conn(app)
+    try:
+        source_id = _seed_source(conn)
+        _seed_item(conn, source_id, external_id="real", title="Real Video")
+        _seed_item(
+            conn,
+            source_id,
+            external_id="sh",
+            title="Secret Short",
+            status="skipped_short",
+            duration_seconds=45,
+        )
+    finally:
+        conn.close()
+
+    r = await client.get("/items")
+    assert r.status_code == 200
+    assert "Real Video" in r.text
+    assert "Secret Short" not in r.text
+
+
+async def test_source_detail_hides_shorts(client: httpx.AsyncClient, app: Any) -> None:
+    """The source detail page excludes items with status='skipped_short'."""
+    conn = _get_db_conn(app)
+    try:
+        source_id = _seed_source(conn)
+        _seed_item(conn, source_id, external_id="real", title="Real Video")
+        _seed_item(
+            conn,
+            source_id,
+            external_id="sh",
+            title="Secret Short",
+            status="skipped_short",
+            duration_seconds=45,
+        )
+    finally:
+        conn.close()
+
+    r = await client.get(f"/sources/{source_id}")
+    assert r.status_code == 200
+    assert "Real Video" in r.text
+    assert "Secret Short" not in r.text
+
+
 # ---------------------------------------------------------------------------
 # /items/search tests
 # ---------------------------------------------------------------------------

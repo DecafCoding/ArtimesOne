@@ -198,6 +198,61 @@ async def test_discover_filters_long_videos(tmp_path: Path) -> None:
 
 
 @respx.mock
+async def test_discover_filters_shorts(tmp_path: Path) -> None:
+    """Videos at or below min_video_duration_seconds are marked skipped_short."""
+    conn = _make_conn(tmp_path)
+    settings = Settings(
+        data_dir=tmp_path / "data",
+        content_dir=tmp_path / "content",
+        youtube_api_key="fake",
+        min_video_duration_seconds=180,
+        _env_file=None,  # type: ignore[call-arg]
+    )
+    source = _seed_source(conn)
+
+    _mock_youtube_api(
+        playlist_video_ids=["short60", "short180", "real", "long"],
+        video_details={
+            "short60": {
+                "snippet": {"title": "60s Short", "publishedAt": "2026-01-01T00:00:00Z"},
+                "contentDetails": {"duration": "PT1M"},
+            },
+            "short180": {
+                "snippet": {"title": "Exactly 3m", "publishedAt": "2026-01-01T01:00:00Z"},
+                "contentDetails": {"duration": "PT3M"},
+            },
+            "real": {
+                "snippet": {"title": "Real", "publishedAt": "2026-01-01T02:00:00Z"},
+                "contentDetails": {"duration": "PT10M"},
+            },
+            "long": {
+                "snippet": {"title": "Too long", "publishedAt": "2026-01-01T03:00:00Z"},
+                "contentDetails": {"duration": "PT2H"},
+            },
+        },
+    )
+
+    collector = YouTubeChannelCollector()
+    result = await collector.discover(source, conn, settings)  # type: ignore[arg-type]
+
+    # Only "real" is discovered. The three shorts-or-long are filtered_out.
+    assert result.discovered == 1
+    assert result.filtered_out == 3
+
+    statuses = dict(
+        conn.execute(
+            "SELECT external_id, status FROM items WHERE source_id = ?",
+            (source["id"],),
+        ).fetchall()
+    )
+    assert statuses["short60"] == "skipped_short"
+    assert statuses["short180"] == "skipped_short"  # boundary: <= min is a short
+    assert statuses["real"] == "discovered"
+    assert statuses["long"] == "skipped_too_long"
+    conn.close()
+
+
+@respx.mock
 async def test_discover_missing_duration_is_skipped(tmp_path: Path) -> None:
     """A video with no duration is treated as skipped_too_long."""
     conn = _make_conn(tmp_path)

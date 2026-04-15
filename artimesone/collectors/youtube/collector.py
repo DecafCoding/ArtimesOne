@@ -3,7 +3,13 @@
 Implements :class:`~artimesone.collectors.Collector` for ``source_type =
 "youtube_channel"``.  ``discover()`` resolves the channel's uploads playlist,
 pages through recent videos, filters by duration, and inserts rows into
-``items`` with ``status='discovered'`` or ``status='skipped_too_long'``.
+``items`` with one of three terminal statuses:
+
+- ``discovered`` — within the duration window, ready for Phase 2 fetch
+- ``skipped_too_long`` — exceeds ``max_video_duration_minutes`` (still
+  visible in the UI with a "too long" badge)
+- ``skipped_short`` — at or below ``min_video_duration_seconds`` (YouTube
+  Short; inserted so stop-at-known works but hidden from every UI view)
 
 ``fetch()`` calls the Apify ``streamers/youtube-scraper`` actor to retrieve
 the transcript for a single discovered video, writes a markdown file with
@@ -77,8 +83,10 @@ class YouTubeChannelCollector:
         3. Page through recent uploads (newest first).
         4. Stop at the first video already known in the DB.
         5. Batch-fetch durations for new videos.
-        6. Insert rows: ``discovered`` if within the duration cap,
-           ``skipped_too_long`` otherwise (including unknown duration).
+        6. Insert rows: ``discovered`` if within the duration window,
+           ``skipped_too_long`` if above ``max_video_duration_minutes``
+           (also when duration is unknown), or ``skipped_short`` if at or
+           below ``min_video_duration_seconds``.
         """
         from artimesone.collectors import DiscoverResult
 
@@ -159,6 +167,7 @@ class YouTubeChannelCollector:
 
         now_iso = datetime.now(UTC).isoformat()
         max_seconds = settings.max_video_duration_minutes * 60
+        min_seconds = settings.min_video_duration_seconds
         discovered = 0
         filtered_out = 0
 
@@ -193,7 +202,13 @@ class YouTubeChannelCollector:
                     }
                 )
 
-                if duration_seconds is not None and duration_seconds <= max_seconds:
+                if duration_seconds is None:
+                    status = "skipped_too_long"
+                    filtered_out += 1
+                elif duration_seconds <= min_seconds:
+                    status = "skipped_short"
+                    filtered_out += 1
+                elif duration_seconds <= max_seconds:
                     status = "discovered"
                     discovered += 1
                 else:
