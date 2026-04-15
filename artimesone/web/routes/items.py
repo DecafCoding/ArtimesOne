@@ -275,6 +275,8 @@ async def item_detail(
         "source_name": row["source_name"],
         "duration_seconds": metadata.get("duration_seconds"),
         "thumbnail_url": metadata.get("thumbnail_url"),
+        "view_count": row["view_count"],
+        "like_count": row["like_count"],
         "retry_count": row["retry_count"],
         "last_error": metadata.get("last_error"),
     }
