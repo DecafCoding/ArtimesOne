@@ -4,10 +4,10 @@
 
   {# Thumbnail #}
   {% if item.thumbnail_url %}
-    <img src="{{ item.thumbnail_url }}" alt="" loading="lazy" style="max-width:100%; border-radius:4px; margin-bottom:1rem;">
+    <img src="{{ item.thumbnail_url }}" alt="" loading="lazy" style="width:500px; max-width:100%; border-radius:4px; margin-bottom:1rem;">
   {% endif %}
 
-  <h1>{{ item.title }}</h1>
+  <h4>{{ item.title }}</h4>
 
   {# Metadata line #}
   <div class="item-meta">
@@ -18,21 +18,22 @@
     {% if item.published_at %}
       <span>{{ item.published_at | relative_date }}</span>
     {% endif %}
-    <span class="badge-status badge-{{ item.status }}">{{ item.status | replace('_', ' ') }}</span>
+    {% if item.view_count %}
+      <span>{{ item.view_count | format_count }} views</span>
+    {% endif %}
+    {% if item.like_count %}
+      <span>{{ item.like_count | format_count }} likes</span>
+    {% endif %}
   </div>
 
-  {# Topic chips #}
+  {# Topics #}
   {% if tags %}
-    <div class="topic-chips" style="margin:0.75rem 0;">
-      {% for tag in tags %}
-        <a class="topic-chip" href="/topics/{{ tag.slug }}">{{ tag.name }}</a>
-      {% endfor %}
-    </div>
+    <p style="margin:0.75rem 0;">{{ tags | map(attribute='name') | join(', ') }}</p>
   {% endif %}
 
   {# YouTube link #}
   {% if item.url %}
-    <p><a href="{{ item.url }}" target="_blank" rel="noopener" role="button" class="secondary">Watch on YouTube</a></p>
+    <p><a href="{{ item.url }}" target="_blank" rel="noopener" role="button" class="secondary" style="padding-top:0.35rem; padding-bottom:0.35rem;">Watch on YouTube</a></p>
   {% endif %}
 
   {# Summary / status messaging #}
