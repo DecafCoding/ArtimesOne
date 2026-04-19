@@ -94,6 +94,8 @@ def create_app() -> FastAPI:
     from .web.routes.chat import router as chat_router
     from .web.routes.dashboard import router as dashboard_router
     from .web.routes.items import router as items_router
+    from .web.routes.libraries import router as libraries_router
+    from .web.routes.projects import router as projects_router
     from .web.routes.rollups import router as rollups_router
     from .web.routes.runs import router as runs_router
     from .web.routes.sources import router as sources_router
@@ -102,6 +104,8 @@ def create_app() -> FastAPI:
     app.include_router(chat_router)
     app.include_router(dashboard_router)
     app.include_router(items_router)
+    app.include_router(libraries_router)
+    app.include_router(projects_router)
     app.include_router(rollups_router)
     app.include_router(runs_router)
     app.include_router(sources_router)

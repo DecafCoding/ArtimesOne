@@ -149,9 +149,7 @@ async def test_round_updates_last_check_at_on_success(tmp_path: Path) -> None:
         await run_collection_round(settings)
 
     conn = get_connection(tmp_path / "data" / "artimesone.db")
-    row = conn.execute(
-        "SELECT last_check_at FROM sources WHERE id = ?", (source_id,)
-    ).fetchone()
+    row = conn.execute("SELECT last_check_at FROM sources WHERE id = ?", (source_id,)).fetchone()
     conn.close()
     assert row["last_check_at"] is not None
     # Parses as an ISO timestamp from within the last minute.
@@ -173,9 +171,7 @@ async def test_round_updates_last_check_at_on_failure(tmp_path: Path) -> None:
         await run_collection_round(settings)
 
     conn = get_connection(tmp_path / "data" / "artimesone.db")
-    row = conn.execute(
-        "SELECT last_check_at FROM sources WHERE id = ?", (source_id,)
-    ).fetchone()
+    row = conn.execute("SELECT last_check_at FROM sources WHERE id = ?", (source_id,)).fetchone()
     conn.close()
     assert row["last_check_at"] is not None
 

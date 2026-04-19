@@ -31,10 +31,8 @@
     <p style="margin:0.75rem 0;">{{ tags | map(attribute='name') | join(', ') }}</p>
   {% endif %}
 
-  {# YouTube link #}
-  {% if item.url %}
-    <p><a href="{{ item.url }}" target="_blank" rel="noopener" role="button" class="secondary" style="padding-top:0.35rem; padding-bottom:0.35rem;">Watch on YouTube</a></p>
-  {% endif %}
+  {# Actions: YouTube link + Library/Project pickers + Pass/Un-pass #}
+  {% include "_item_actions.html" %}
 
   {# Summary / status messaging #}
   {% if item.status == 'skipped_too_long' %}

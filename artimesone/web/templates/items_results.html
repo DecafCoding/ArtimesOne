@@ -44,6 +44,8 @@
           {% elif item.summary %}
             <p class="video-card-summary">{{ item.summary | first_paragraph | truncate(200) }}</p>
           {% endif %}
+
+          {% include "_item_actions.html" %}
         </div>
       </article>
     {% endfor %}

@@ -1,7 +1,8 @@
-"""Chat agent tools — the 15 functions that give the agent corpus access.
+"""Chat agent tools — the 17 functions that give the agent corpus access.
 
 Organized into three tiers per plan section 6:
-- **Read tools** (9): query items, transcripts, topics, sources, stats, rollups
+- **Read tools** (11): query items, transcripts, topics, sources, stats,
+  rollups, lists
 - **Write tools** (3): create/update rollups, add tags
 - **Source-management tools** (3): add/enable/disable sources
 
@@ -28,11 +29,15 @@ from artimesone.agents.models import (
     CorpusStats,
     ItemDetail,
     ItemSummary,
+    ListDetail,
+    ListInfo,
     RollupDetail,
     RollupSummary,
     SourceInfo,
     TopicInfo,
 )
+from artimesone.lists import get_list_by_id, get_lists_by_kind
+from artimesone.web.filters_sql import build_visibility_filter
 
 if TYPE_CHECKING:
     pass
@@ -190,7 +195,7 @@ async def search_items(
     """
     params: list[object] = []
     joins: list[str] = []
-    wheres: list[str] = ["items_fts MATCH ?", "i.status != 'skipped_short'"]
+    wheres: list[str] = ["items_fts MATCH ?", build_visibility_filter("i")]
     params.append(escaped_query)
 
     if topic:
@@ -301,7 +306,7 @@ async def list_recent_items(
     """
     params: list[object] = []
     joins: list[str] = []
-    wheres: list[str] = ["i.created_at >= ?", "i.status != 'skipped_short'"]
+    wheres: list[str] = ["i.created_at >= ?", build_visibility_filter("i")]
     params.append(cutoff)
 
     if topic:
@@ -486,6 +491,63 @@ async def get_rollup(ctx: RunContext[ChatDeps], rollup_id: int) -> RollupDetail 
         created_at=row["created_at"],
         body=body,
         source_items=source_items,
+    )
+
+
+async def get_lists(ctx: RunContext[ChatDeps], kind: str | None = None) -> list[ListInfo]:
+    """List user-curated lists (libraries and projects) with item counts.
+
+    Pass ``kind='library'`` or ``kind='project'`` to filter; omit for all."""
+    conn = ctx.deps.conn
+    if kind not in (None, "library", "project"):
+        return []
+    rows = get_lists_by_kind(conn, kind)  # type: ignore[arg-type]
+    return [
+        ListInfo(
+            id=r["id"],
+            name=r["name"],
+            kind=r["kind"],
+            item_count=r["item_count"],
+            created_at=r["created_at"],
+            updated_at=r["updated_at"],
+        )
+        for r in rows
+    ]
+
+
+async def get_list(ctx: RunContext[ChatDeps], list_id: int) -> ListDetail | str:
+    """Get list metadata plus its member items. Use this to answer questions
+    like 'what's in my AI Skills project?'"""
+    conn = ctx.deps.conn
+    content_dir = ctx.deps.settings.content_dir
+
+    row = get_list_by_id(conn, list_id)
+    if row is None:
+        return f"List {list_id} not found."
+
+    item_rows = conn.execute(
+        """
+        SELECT i.id, i.title, i.url, i.published_at, i.summary_path,
+               i.metadata, i.status,
+               s.name AS source_name
+        FROM list_items li
+        JOIN items i ON i.id = li.item_id
+        JOIN sources s ON s.id = i.source_id
+        WHERE li.list_id = ?
+        ORDER BY li.added_at DESC
+        """,
+        (list_id,),
+    ).fetchall()
+
+    items = [_build_item_summary(ir, conn, content_dir) for ir in item_rows]
+
+    return ListDetail(
+        id=row["id"],
+        name=row["name"],
+        kind=row["kind"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+        items=items,
     )
 
 
@@ -765,7 +827,7 @@ async def disable_source(ctx: RunContext[ChatDeps], source_id: int) -> str:
 
 
 def register_tools(agent: Agent[ChatDeps, str]) -> None:
-    """Register all 15 tools on the given agent instance."""
+    """Register all 17 tools on the given agent instance."""
     # Read tools
     agent.tool(search_items)
     agent.tool(get_item)
@@ -776,6 +838,8 @@ def register_tools(agent: Agent[ChatDeps, str]) -> None:
     agent.tool(get_stats)
     agent.tool(list_rollups)
     agent.tool(get_rollup)
+    agent.tool(get_lists)
+    agent.tool(get_list)
 
     # Write tools
     agent.tool(create_rollup)

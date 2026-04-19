@@ -19,6 +19,8 @@ from fastapi.responses import HTMLResponse
 
 from ...app import get_db, get_settings
 from ...config import Settings
+from ...lists import get_lists_by_kind
+from ..filters_sql import build_visibility_filter
 
 router = APIRouter()
 
@@ -34,15 +36,18 @@ def _query_recent_items(
     cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
     placeholders = ",".join("?" for _ in _VISIBLE_STATUSES)
 
+    visibility = build_visibility_filter("i")
     rows = conn.execute(
         f"""
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                i.status, i.metadata, i.summary_path, i.created_at,
+               i.passed_at,
                s.id AS source_id, s.name AS source_name
         FROM items i
         JOIN sources s ON s.id = i.source_id
         WHERE i.created_at >= ?
           AND i.status IN ({placeholders})
+          AND {visibility}
         ORDER BY i.published_at DESC, i.created_at DESC
         """,
         (cutoff, *_VISIBLE_STATUSES),
@@ -78,6 +83,7 @@ def _query_recent_items(
                 "thumbnail_url": metadata.get("thumbnail_url"),
                 "summary": summary_text,
                 "topics": [{"slug": t["slug"], "name": t["name"]} for t in tag_rows],
+                "passed_at": row["passed_at"],
             }
         )
 
@@ -206,5 +212,7 @@ async def dashboard(
             "today_groups": today_groups,
             "rest_groups": rest_groups,
             "has_items": len(items) > 0,
+            "libraries": [dict(r) for r in get_lists_by_kind(conn, "library")],
+            "projects": [dict(r) for r in get_lists_by_kind(conn, "project")],
         },
     )

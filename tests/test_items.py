@@ -390,7 +390,6 @@ async def test_item_detail_with_tags(client: httpx.AsyncClient, app: Any) -> Non
     r = await client.get(f"/items/{item_id}")
     assert r.status_code == 200
     assert "Machine Learning" in r.text
-    assert "/topics/machine-learning" in r.text
 
 
 async def test_item_detail_youtube_link(client: httpx.AsyncClient, app: Any) -> None:

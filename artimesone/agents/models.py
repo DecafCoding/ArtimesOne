@@ -86,3 +86,25 @@ class RollupDetail(BaseModel):
     created_at: str
     body: str
     source_items: list[ItemSummary]
+
+
+class ListInfo(BaseModel):
+    """List metadata with item count."""
+
+    id: int
+    name: str
+    kind: str
+    item_count: int
+    created_at: str
+    updated_at: str
+
+
+class ListDetail(BaseModel):
+    """List metadata plus member items."""
+
+    id: int
+    name: str
+    kind: str
+    created_at: str
+    updated_at: str
+    items: list[ItemSummary]

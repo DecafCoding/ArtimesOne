@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Projects — ArtimesOne{% endblock %}
+{% block content %}
+  <h1>Projects</h1>
+  <p><small>Projects are research collections. Filed items stay visible in the main feed.</small></p>
+
+  {% if message %}<article>{{ message }}</article>{% endif %}
+
+  <h2>Create a project</h2>
+  <form method="post" action="/projects" class="sources-add-form">
+    <input name="name" placeholder="Name (e.g. AI Skills)" aria-label="Project name" required>
+    <button type="submit">Create project</button>
+  </form>
+
+  <h2>All projects</h2>
+  {% if projects %}
+    <table class="table-compact">
+      <thead><tr><th>Name</th><th>Items</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for proj in projects %}
+        <tr>
+          <td><a href="/projects/{{ proj.id }}">{{ proj.name }}</a></td>
+          <td>{{ proj.item_count }}</td>
+          <td>
+            <form method="post" action="/projects/{{ proj.id }}/delete" style="display:inline"
+                  onsubmit="return confirm('Delete this project? Items remain but membership is lost.');">
+              <button type="submit" class="btn-compact contrast">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No projects yet. Create one above or click <em>Project ▾</em> on any item card.</p>
+  {% endif %}
+{% endblock %}

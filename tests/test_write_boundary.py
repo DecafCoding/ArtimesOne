@@ -1,9 +1,11 @@
 """Write-boundary integrity test (PRD §13 Risk #3).
 
 Asserts programmatically that the chat agent's tool surface:
-- contains exactly the 15 expected tools from PRD §6.1-6.3,
+- contains exactly the 17 expected tools from PRD §6.1-6.3,
 - does not write to raw tables (``items``, ``collection_runs``) or raw
-  markdown paths (``content/transcripts/``, ``content/summaries/``).
+  markdown paths (``content/transcripts/``, ``content/summaries/``),
+- does not write to user-state tables (``lists``, ``list_items``) or
+  ``items.passed_at``.
 
 SQLite has no row-level access control; this test is the only automated
 gate enforcing the application-layer write boundary documented in
@@ -31,6 +33,8 @@ EXPECTED_READ_TOOLS = {
     "get_stats",
     "list_rollups",
     "get_rollup",
+    "get_lists",
+    "get_list",
 }
 EXPECTED_WRITE_TOOLS = {
     "create_rollup",
@@ -51,6 +55,13 @@ FORBIDDEN_PATTERNS = [
     re.compile(r"INSERT\s+INTO\s+collection_runs\b", re.IGNORECASE),
     re.compile(r"UPDATE\s+collection_runs\b", re.IGNORECASE),
     re.compile(r"DELETE\s+FROM\s+collection_runs\b", re.IGNORECASE),
+    re.compile(r"INSERT\s+INTO\s+lists\b", re.IGNORECASE),
+    re.compile(r"UPDATE\s+lists\b", re.IGNORECASE),
+    re.compile(r"DELETE\s+FROM\s+lists\b", re.IGNORECASE),
+    re.compile(r"INSERT\s+INTO\s+list_items\b", re.IGNORECASE),
+    re.compile(r"UPDATE\s+list_items\b", re.IGNORECASE),
+    re.compile(r"DELETE\s+FROM\s+list_items\b", re.IGNORECASE),
+    re.compile(r"passed_at\s*="),
     re.compile(r"transcripts/"),
     re.compile(r"summaries/"),
 ]
@@ -72,7 +83,7 @@ def _get_registered_tool_names(agent: Any) -> set[str]:
 
 
 def test_registered_tool_set_matches_prd() -> None:
-    """The chat agent registers exactly the 15 tools from PRD §6.1-6.3."""
+    """The chat agent registers exactly the 17 tools from PRD §6.1-6.3."""
     agent = create_chat_agent(model=TestModel())
     registered = _get_registered_tool_names(agent)
     assert registered == EXPECTED_ALL, (

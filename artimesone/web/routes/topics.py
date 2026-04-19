@@ -16,6 +16,8 @@ from fastapi.responses import HTMLResponse
 
 from ...app import get_db, get_settings
 from ...config import Settings
+from ...lists import get_lists_by_kind
+from ..filters_sql import build_visibility_filter
 
 router = APIRouter(prefix="/topics")
 
@@ -97,6 +99,7 @@ def _enrich_item_row(
         "thumbnail_url": metadata.get("thumbnail_url"),
         "summary": summary_text,
         "topics": _fetch_item_tags(conn, row["id"]),
+        "passed_at": row["passed_at"],
     }
 
 
@@ -192,16 +195,18 @@ async def topic_detail(
     # Items for this topic. Shorts are never tagged (they never reach the
     # summarize phase), but we filter here defensively so any stray tagging
     # still hides them from the UI.
+    visibility = build_visibility_filter("i")
     item_rows = conn.execute(
-        """
+        f"""
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                i.status, i.metadata, i.summary_path, i.created_at,
+               i.passed_at,
                s.id AS source_id, s.name AS source_name
         FROM item_tags it
         JOIN items i ON i.id = it.item_id
         JOIN sources s ON s.id = i.source_id
         WHERE it.tag_id = ?
-          AND i.status != 'skipped_short'
+          AND {visibility}
         ORDER BY COALESCE(i.published_at, i.fetched_at) DESC
         """,
         (tag["id"],),
@@ -213,5 +218,11 @@ async def topic_detail(
     return templates.TemplateResponse(  # type: ignore[no-any-return]
         request,
         "topic_detail.html",
-        {"tag": tag, "rollups": rollups, "items": items},
+        {
+            "tag": tag,
+            "rollups": rollups,
+            "items": items,
+            "libraries": [dict(r) for r in get_lists_by_kind(conn, "library")],
+            "projects": [dict(r) for r in get_lists_by_kind(conn, "project")],
+        },
     )

@@ -267,6 +267,53 @@ async def test_v1_end_to_end(client: httpx.AsyncClient, app: FastAPI, tmp_path: 
     assert rollup_page.status_code == 200
     assert "LoRA Roundup" in rollup_page.text
 
+    # --- Act 5: library + project end-to-end. ---
+    lib_resp = await client.post(
+        "/libraries", data={"name": "Entertainment"}, follow_redirects=False
+    )
+    assert lib_resp.status_code == 303
+    library_id = int(lib_resp.headers["location"].rsplit("/", 1)[-1])
+
+    proj_resp = await client.post("/projects", data={"name": "AI Skills"}, follow_redirects=False)
+    assert proj_resp.status_code == 303
+    project_id = int(proj_resp.headers["location"].rsplit("/", 1)[-1])
+
+    item_id: int = item_row["id"]
+
+    # File the item into the library → should vanish from /items default view.
+    file_resp = await client.post(
+        f"/items/{item_id}/list",
+        data={"list_id": str(library_id)},
+        follow_redirects=False,
+    )
+    assert file_resp.status_code == 303
+    items_after_file = await client.get("/items")
+    assert "LoRA Video smoke_vid1" not in items_after_file.text
+
+    library_page = await client.get(f"/libraries/{library_id}")
+    assert library_page.status_code == 200
+    assert "LoRA Video smoke_vid1" in library_page.text
+
+    # Un-file (remove from library) so we can add to project and still see it.
+    unfile_resp = await client.post(
+        f"/items/{item_id}/list/{library_id}/remove",
+        follow_redirects=False,
+    )
+    assert unfile_resp.status_code == 303
+
+    project_add_resp = await client.post(
+        f"/items/{item_id}/list",
+        data={"list_id": str(project_id)},
+        follow_redirects=False,
+    )
+    assert project_add_resp.status_code == 303
+    items_after_project = await client.get("/items")
+    assert "LoRA Video smoke_vid1" in items_after_project.text
+
+    project_page = await client.get(f"/projects/{project_id}")
+    assert project_page.status_code == 200
+    assert "LoRA Video smoke_vid1" in project_page.text
+
     # --- Budget guard: fail loudly if the smoke test balloons past 2s. ---
     elapsed = time.monotonic() - started
     assert elapsed < 2.0, f"Smoke test took {elapsed:.2f}s (target <2s)"

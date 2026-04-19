@@ -1,0 +1,52 @@
+{# Shared action bar for an item card.
+   Expects:
+     item           — dict with id, url, passed_at
+     libraries      — list of {id, name} (optional; enables Library ▾)
+     projects       — list of {id, name} (optional; enables Project ▾)
+     current_library_id — id of the item's current library, if any (optional)
+#}
+<div class="item-actions">
+  {% if item.url %}
+    <small><a href="{{ item.url }}" class="external-link" target="_blank" rel="noopener">Watch on YouTube</a></small>
+  {% endif %}
+
+  {% if libraries is defined %}
+    <details class="list-picker">
+      <summary class="secondary outline" role="button">Library ▾</summary>
+      <form method="post" action="/items/{{ item.id }}/list" class="list-picker-form">
+        <select name="list_id" aria-label="Pick a library">
+          {% for lib in libraries %}
+            <option value="{{ lib.id }}" {% if current_library_id == lib.id %}selected{% endif %}>{{ lib.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">File</button>
+      </form>
+      <small><a href="/libraries">Manage libraries →</a></small>
+    </details>
+  {% endif %}
+
+  {% if projects is defined %}
+    <details class="list-picker">
+      <summary class="secondary outline" role="button">Project ▾</summary>
+      <form method="post" action="/items/{{ item.id }}/list" class="list-picker-form">
+        <select name="list_id" aria-label="Pick a project">
+          {% for proj in projects %}
+            <option value="{{ proj.id }}">{{ proj.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Add</button>
+      </form>
+      <small><a href="/projects">Manage projects →</a></small>
+    </details>
+  {% endif %}
+
+  {% if item.passed_at %}
+    <form method="post" action="/items/{{ item.id }}/unpass" class="inline-action">
+      <button type="submit" class="secondary">Un-pass</button>
+    </form>
+  {% else %}
+    <form method="post" action="/items/{{ item.id }}/pass" class="inline-action">
+      <button type="submit" class="secondary outline">Pass</button>
+    </form>
+  {% endif %}
+</div>
