@@ -19,7 +19,7 @@
             <option value="{{ lib.id }}" {% if current_library_id == lib.id %}selected{% endif %}>{{ lib.name }}</option>
           {% endfor %}
         </select>
-        <button type="submit">File</button>
+        <button type="submit">Add Video</button>
       </form>
       <small><a href="/libraries">Manage libraries →</a></small>
     </details>
@@ -34,7 +34,7 @@
             <option value="{{ proj.id }}">{{ proj.name }}</option>
           {% endfor %}
         </select>
-        <button type="submit">Add</button>
+        <button type="submit">Add Video</button>
       </form>
       <small><a href="/projects">Manage projects →</a></small>
     </details>

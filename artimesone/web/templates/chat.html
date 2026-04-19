@@ -30,13 +30,11 @@
     {% endfor %}
   </div>
 
-  <form id="chat-form" autocomplete="off">
-    <fieldset role="group">
-      <input type="text" id="chat-input" name="message" placeholder="Ask about your content..."
-             {% if not has_api_key %}disabled{% endif %}
-             required>
-      <button type="submit" {% if not has_api_key %}disabled{% endif %}>Send</button>
-    </fieldset>
+  <form id="chat-form" class="inline-form" autocomplete="off">
+    <input type="text" id="chat-input" name="message" placeholder="Ask about your content..."
+           {% if not has_api_key %}disabled{% endif %}
+           required>
+    <button type="submit" {% if not has_api_key %}disabled{% endif %}>Send</button>
   </form>
 
   {% if messages %}

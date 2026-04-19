@@ -7,7 +7,7 @@
 
   <details>
     <summary>Rename or delete</summary>
-    <form method="post" action="/libraries/{{ library.id }}/rename" class="sources-add-form" style="margin-top:0.5rem;">
+    <form method="post" action="/libraries/{{ library.id }}/rename" class="inline-form" style="margin-top:0.5rem;">
       <input name="name" value="{{ library.name }}" aria-label="Library name" required>
       <button type="submit">Rename</button>
     </form>
