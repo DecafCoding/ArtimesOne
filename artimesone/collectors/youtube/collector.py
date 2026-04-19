@@ -128,9 +128,7 @@ class YouTubeChannelCollector:
             (source["id"],),
         ).fetchone()
         is_cold_start = (existing_count_row[0] or 0) == 0
-        max_results = (
-            settings.initial_video_cap if is_cold_start else settings.rolling_video_cap
-        )
+        max_results = settings.initial_video_cap if is_cold_start else settings.rolling_video_cap
         playlist_items = await client.list_playlist_items(
             uploads_playlist_id, max_results=max_results
         )

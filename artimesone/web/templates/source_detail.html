@@ -14,54 +14,9 @@
   <h2>Items</h2>
   {% if items %}
     {% for item in items %}
-      <div class="item-card">
-        {% if item.thumbnail_url %}
-          <img class="item-thumb" src="{{ item.thumbnail_url }}" alt="" loading="lazy">
-        {% else %}
-          <div class="item-thumb-placeholder"></div>
-        {% endif %}
-
-        <div class="item-body">
-          <h3>
-            {% if item.status == 'skipped_too_long' %}
-              <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
-            {% else %}
-              <a href="/items/{{ item.id }}">{{ item.title }}</a>
-            {% endif %}
-          </h3>
-
-          <div class="item-meta">
-            {% if item.duration_seconds %}
-              <span>{{ item.duration_seconds | format_duration }}</span>
-            {% endif %}
-            {% if item.published_at %}
-              <span>{{ item.published_at | relative_date }}</span>
-            {% endif %}
-          </div>
-
-          {% if item.status == 'skipped_too_long' %}
-            <span class="badge-too-long">Too long</span>
-          {% elif item.summary %}
-            <p class="item-summary">{{ item.summary | first_paragraph }}</p>
-          {% elif item.status == 'discovered' %}
-            <p><em>Awaiting transcript...</em></p>
-          {% elif item.status == 'transcribed' %}
-            <p><em>Awaiting summary...</em></p>
-          {% endif %}
-
-          {% if item.topics %}
-            <div class="topic-chips">
-              {% for topic in item.topics %}
-                <a class="topic-chip" href="/topics/{{ topic.slug }}">{{ topic.name }}</a>
-              {% endfor %}
-            </div>
-          {% endif %}
-
-          {% if item.url %}
-            <small><a href="{{ item.url }}" class="external-link" target="_blank" rel="noopener">Watch on YouTube</a></small>
-          {% endif %}
-        </div>
-      </div>
+      {% with hide_source = True %}
+        {% include "_item_card.html" %}
+      {% endwith %}
     {% endfor %}
   {% else %}
     <p>No items collected yet.</p>

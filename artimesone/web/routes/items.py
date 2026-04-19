@@ -14,11 +14,18 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ...app import get_db, get_settings
 from ...config import Settings
+from ...lists import (
+    ListError,
+    add_item_to_list,
+    get_lists_by_kind,
+    remove_item_from_list,
+)
+from ..filters_sql import build_visibility_filter
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +84,7 @@ def _enrich_item_row(
         "like_count": row["like_count"],
         "summary": _read_md_text(content_dir, row["summary_path"]),
         "topics": _fetch_item_tags(conn, row["id"]),
+        "passed_at": row["passed_at"],
     }
 
 
@@ -96,6 +104,18 @@ def _read_md_text(content_dir: Path, rel_path: str | None) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# Picker context (libraries + projects for the Library ▾ / Project ▾ dropdowns)
+# ---------------------------------------------------------------------------
+
+
+def _picker_context(conn: sqlite3.Connection) -> dict[str, Any]:
+    """Return libraries + projects for the item-card action dropdowns."""
+    libraries = [dict(r) for r in get_lists_by_kind(conn, "library")]
+    projects = [dict(r) for r in get_lists_by_kind(conn, "project")]
+    return {"libraries": libraries, "projects": projects}
+
+
+# ---------------------------------------------------------------------------
 # Browse route
 # ---------------------------------------------------------------------------
 
@@ -108,15 +128,36 @@ async def list_items(
     q: str | None = None,
     topic: str | None = None,
     status: str | None = None,
+    show: str | None = None,
 ) -> HTMLResponse:
-    """List all items, newest first, with optional filters."""
-    items = _query_items(conn, settings.content_dir, q=q, topic=topic, status=status)
+    """List all items, newest first, with optional filters.
+
+    ``show=passed`` flips the visibility filter to show only passed items so
+    the user can find and un-pass previously dismissed items.
+    """
+    show_passed = show == "passed"
+    items = _query_items(
+        conn,
+        settings.content_dir,
+        q=q,
+        topic=topic,
+        status=status,
+        show_passed=show_passed,
+    )
 
     templates = request.app.state.templates
     return templates.TemplateResponse(  # type: ignore[no-any-return]
         request,
         "items.html",
-        {"items": items, "q": q or "", "topic": topic or "", "status": status or ""},
+        {
+            "items": items,
+            "q": q or "",
+            "topic": topic or "",
+            "status": status or "",
+            "show": show or "",
+            "show_passed": show_passed,
+            **_picker_context(conn),
+        },
     )
 
 
@@ -128,13 +169,15 @@ def _query_items(
     topic: str | None = None,
     status: str | None = None,
     limit: int = 50,
+    show_passed: bool = False,
 ) -> list[dict[str, Any]]:
     """Fetch items with optional filters, newest first.
 
-    Always excludes status='skipped_short' — Shorts are tracked in the DB for
-    stop-at-known rotation but never surfaced in the UI.
+    Applies the shared visibility filter (hides Shorts, passed, and
+    library-filed items). ``show_passed=True`` flips to showing only passed
+    items for the un-pass UX.
     """
-    clauses: list[str] = ["i.status != 'skipped_short'"]
+    clauses: list[str] = [build_visibility_filter(show_passed=show_passed)]
     params: list[object] = []
 
     if topic:
@@ -154,7 +197,7 @@ def _query_items(
         f"""
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                i.status, i.metadata, i.summary_path, i.created_at,
-               i.view_count, i.like_count,
+               i.view_count, i.like_count, i.passed_at,
                s.id AS source_id, s.name AS source_name
         FROM items i
         JOIN sources s ON s.id = i.source_id
@@ -179,42 +222,49 @@ async def search_items(
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
     q: str = "",
+    show: str | None = None,
 ) -> HTMLResponse:
     """HTMX partial: return item cards matching an FTS5 query."""
+    show_passed = show == "passed"
     items: list[dict[str, Any]] = []
 
     if q.strip():
-        items = _fts_search(conn, q.strip(), settings.content_dir)
+        items = _fts_search(conn, q.strip(), settings.content_dir, show_passed=show_passed)
 
     if not items:
         # Fall back to recent items when query is empty or FTS matched nothing.
-        items = _query_items(conn, settings.content_dir, limit=20)
+        items = _query_items(conn, settings.content_dir, limit=20, show_passed=show_passed)
 
     templates = request.app.state.templates
     return templates.TemplateResponse(  # type: ignore[no-any-return]
         request,
         "items_results.html",
-        {"items": items, "q": q},
+        {"items": items, "q": q, **_picker_context(conn)},
     )
 
 
 def _fts_search(
-    conn: sqlite3.Connection, query: str, content_dir: Path
+    conn: sqlite3.Connection,
+    query: str,
+    content_dir: Path,
+    *,
+    show_passed: bool = False,
 ) -> list[dict[str, Any]]:
     """Run an FTS5 search and return enriched item dicts with snippets."""
+    visibility = build_visibility_filter(show_passed=show_passed)
     try:
         rows = conn.execute(
-            """
+            f"""
             SELECT i.id, i.external_id, i.title, i.url, i.published_at,
                    i.status, i.metadata, i.summary_path, i.created_at,
-                   i.view_count, i.like_count,
+                   i.view_count, i.like_count, i.passed_at,
                    s.id AS source_id, s.name AS source_name,
                    snippet(items_fts, 1, '<mark>', '</mark>', '...', 30) AS search_snippet
             FROM items_fts
             JOIN items i ON i.id = items_fts.rowid
             JOIN sources s ON s.id = i.source_id
             WHERE items_fts MATCH ?
-              AND i.status != 'skipped_short'
+              AND {visibility}
             ORDER BY bm25(items_fts)
             LIMIT 20
             """,
@@ -279,6 +329,7 @@ async def item_detail(
         "like_count": row["like_count"],
         "retry_count": row["retry_count"],
         "last_error": metadata.get("last_error"),
+        "passed_at": row["passed_at"],
     }
 
     templates = request.app.state.templates
@@ -290,8 +341,93 @@ async def item_detail(
             "tags": tags,
             "summary_text": summary_text,
             "transcript_text": transcript_text,
+            **_picker_context(conn),
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Pass / un-pass routes
+# ---------------------------------------------------------------------------
+
+
+def _redirect_back(request: Request, fallback: str) -> RedirectResponse:
+    """303 redirect to the Referer header if present, else *fallback*.
+
+    Used by idempotent POST actions (pass, un-pass, list membership) so the
+    user lands back on whichever surface they clicked from.
+    """
+    referer = request.headers.get("referer")
+    return RedirectResponse(url=referer or fallback, status_code=303)
+
+
+@router.post("/{item_id}/pass")
+async def pass_item(
+    request: Request,
+    item_id: int,
+    conn: Annotated[sqlite3.Connection, Depends(get_db)],
+) -> RedirectResponse:
+    """Mark an item as passed (dismissed) — hides it from the main feed."""
+    now_iso = datetime.now(UTC).isoformat()
+    conn.execute(
+        "UPDATE items SET passed_at = ?, updated_at = ? WHERE id = ?",
+        (now_iso, now_iso, item_id),
+    )
+    conn.commit()
+    return _redirect_back(request, f"/items/{item_id}")
+
+
+@router.post("/{item_id}/unpass")
+async def unpass_item(
+    request: Request,
+    item_id: int,
+    conn: Annotated[sqlite3.Connection, Depends(get_db)],
+) -> RedirectResponse:
+    """Clear the passed flag so the item returns to the main feed."""
+    now_iso = datetime.now(UTC).isoformat()
+    conn.execute(
+        "UPDATE items SET passed_at = NULL, updated_at = ? WHERE id = ?",
+        (now_iso, item_id),
+    )
+    conn.commit()
+    return _redirect_back(request, f"/items/{item_id}")
+
+
+# ---------------------------------------------------------------------------
+# List membership routes
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{item_id}/list")
+async def add_to_list(
+    request: Request,
+    item_id: int,
+    list_id: Annotated[int, Form()],
+    conn: Annotated[sqlite3.Connection, Depends(get_db)],
+) -> RedirectResponse:
+    """Add an item to a list (library or project).
+
+    The library-exclusivity rule is applied inside ``add_item_to_list`` — if
+    the target is a library, any prior library membership is removed in the
+    same transaction.
+    """
+    try:
+        add_item_to_list(conn, item_id, list_id)
+    except ListError as exc:
+        logger.warning("add_item_to_list failed: %s", exc)
+    return _redirect_back(request, f"/items/{item_id}")
+
+
+@router.post("/{item_id}/list/{list_id}/remove")
+async def remove_from_list(
+    request: Request,
+    item_id: int,
+    list_id: int,
+    conn: Annotated[sqlite3.Connection, Depends(get_db)],
+) -> RedirectResponse:
+    """Remove an item from a specific list. Idempotent no-op if absent."""
+    remove_item_from_list(conn, item_id, list_id)
+    return _redirect_back(request, f"/items/{item_id}")
 
 
 # ---------------------------------------------------------------------------

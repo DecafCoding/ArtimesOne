@@ -1,7 +1,7 @@
 """Chat agent — conversational interface over the collected corpus.
 
 Constructs a pydantic-ai ``Agent[ChatDeps, str]`` with the system prompt
-from plan section 6.4 and all 15 tools from sections 6.1-6.3.  The agent is built
+from plan section 6.4 and all 17 tools from sections 6.1-6.3.  The agent is built
 lazily via ``create_chat_agent()`` so the app boots without an API key.
 
 Tools are registered inside the factory by calling ``register_tools()``
@@ -48,7 +48,11 @@ of fewer, more accurate tags.
 
 If the user asks you to follow a new source, use `add_source` (auto-enabled) \
 and confirm what was added. If the user asks to stop a source, use \
-`disable_source` rather than asking them to do it manually."""
+`disable_source` rather than asking them to do it manually.
+
+You have read-only access to lists (libraries and projects). The user may ask \
+you to summarize what's in a project — use `get_list` for that. You cannot \
+add items to lists; direct the user to the web UI if they ask."""
 
 TELEGRAM_SYSTEM_ADDENDUM = (
     "Your response is being sent via Telegram and read on a phone. "

@@ -275,3 +275,65 @@ async def test_dashboard_nav_links(client: httpx.AsyncClient) -> None:
     assert r.status_code == 200
     assert "/topics" in r.text
     assert "/runs" in r.text
+
+
+# ---------------------------------------------------------------------------
+# Phase-7 visibility: passed + library-filed items hidden; project-filed shown
+# ---------------------------------------------------------------------------
+
+
+async def test_dashboard_hides_passed_items(client: httpx.AsyncClient, app: Any) -> None:
+    from artimesone.db import get_connection
+
+    conn = get_connection(app.state.db_path)
+    try:
+        source_id = _seed_source(conn)
+        _seed_item(conn, source_id, external_id="v1", title="Active Video")
+        passed_id = _seed_item(conn, source_id, external_id="v2", title="Dismissed Video")
+        conn.execute(
+            "UPDATE items SET passed_at = ? WHERE id = ?",
+            (datetime.now(UTC).isoformat(), passed_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    r = await client.get("/")
+    assert "Active Video" in r.text
+    assert "Dismissed Video" not in r.text
+
+
+async def test_dashboard_hides_library_filed_items(client: httpx.AsyncClient, app: Any) -> None:
+    from artimesone.db import get_connection
+    from artimesone.lists import add_item_to_list, create_list
+
+    conn = get_connection(app.state.db_path)
+    try:
+        source_id = _seed_source(conn)
+        _seed_item(conn, source_id, external_id="keep", title="Keep Visible")
+        filed_id = _seed_item(conn, source_id, external_id="filed", title="Filed Away")
+        lib_id = create_list(conn, "Entertainment", "library")
+        add_item_to_list(conn, filed_id, lib_id)
+    finally:
+        conn.close()
+
+    r = await client.get("/")
+    assert "Keep Visible" in r.text
+    assert "Filed Away" not in r.text
+
+
+async def test_dashboard_shows_project_filed_items(client: httpx.AsyncClient, app: Any) -> None:
+    from artimesone.db import get_connection
+    from artimesone.lists import add_item_to_list, create_list
+
+    conn = get_connection(app.state.db_path)
+    try:
+        source_id = _seed_source(conn)
+        item_id = _seed_item(conn, source_id, external_id="p1", title="Research Target")
+        proj_id = create_list(conn, "AI Skills", "project")
+        add_item_to_list(conn, item_id, proj_id)
+    finally:
+        conn.close()
+
+    r = await client.get("/")
+    assert "Research Target" in r.text

@@ -17,6 +17,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ...app import get_db, get_settings
 from ...config import Settings
+from ...lists import get_lists_by_kind
+from ..filters_sql import build_visibility_filter
 
 router = APIRouter(prefix="/sources")
 
@@ -180,14 +182,17 @@ async def source_detail(
 
     source: dict[str, Any] = dict(source_row)
 
-    # Items for this source (newest first, limit 50). Shorts are hidden.
+    # Items for this source (newest first, limit 50). Shorts, passed, and
+    # library-filed items are hidden by the shared visibility filter.
+    visibility = build_visibility_filter("i")
     item_rows = conn.execute(
-        """
+        f"""
         SELECT i.id, i.external_id, i.title, i.url, i.published_at,
-               i.status, i.metadata, i.summary_path, i.created_at
+               i.status, i.metadata, i.summary_path, i.created_at,
+               i.passed_at
         FROM items i
         WHERE i.source_id = ?
-          AND i.status != 'skipped_short'
+          AND {visibility}
         ORDER BY COALESCE(i.published_at, i.fetched_at) DESC
         LIMIT 50
         """,
@@ -210,6 +215,7 @@ async def source_detail(
                 "thumbnail_url": metadata.get("thumbnail_url"),
                 "summary": summary_text,
                 "topics": _fetch_item_tags(conn, row["id"]),
+                "passed_at": row["passed_at"],
             }
         )
 
@@ -243,5 +249,11 @@ async def source_detail(
     return templates.TemplateResponse(  # type: ignore[no-any-return]
         request,
         "source_detail.html",
-        {"source": source, "items": items, "runs": runs},
+        {
+            "source": source,
+            "items": items,
+            "runs": runs,
+            "libraries": [dict(r) for r in get_lists_by_kind(conn, "library")],
+            "projects": [dict(r) for r in get_lists_by_kind(conn, "project")],
+        },
     )

@@ -1,4 +1,4 @@
-"""Tests for the chat agent construction and all 15 tools.
+"""Tests for the chat agent construction and all 17 tools.
 
 Tools are tested by calling the async functions directly with a minimal
 RunContext[ChatDeps].  This avoids needing a live LLM and keeps tests fast
@@ -199,7 +199,7 @@ def test_create_chat_agent_returns_agent() -> None:
 
 
 def test_create_chat_agent_has_all_tools() -> None:
-    """The agent has all 15 tools registered."""
+    """The agent has all 17 tools registered."""
     agent = create_chat_agent(model="test")
     tool_names = set(agent._function_toolset.tools)
     expected = {
@@ -212,6 +212,8 @@ def test_create_chat_agent_has_all_tools() -> None:
         "get_stats",
         "list_rollups",
         "get_rollup",
+        "get_lists",
+        "get_list",
         "create_rollup",
         "update_rollup",
         "add_tag_to_item",

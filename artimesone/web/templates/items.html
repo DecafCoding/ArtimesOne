@@ -1,14 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Items — ArtimesOne{% endblock %}
 {% block content %}
-  <h1>Items</h1>
+  <h1>Items{% if show_passed %} — Passed{% endif %}</h1>
 
-  <input type="search" name="q" placeholder="Search items..."
-         value="{{ q }}"
-         hx-get="/items/search"
-         hx-trigger="keyup changed delay:300ms"
-         hx-target="#results"
-         hx-swap="innerHTML">
+  <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem;">
+    <input type="search" name="q" placeholder="Search items..." style="flex:1; margin:0;"
+           value="{{ q }}"
+           hx-get="/items/search{% if show_passed %}?show=passed{% endif %}"
+           hx-trigger="keyup changed delay:300ms"
+           hx-target="#results"
+           hx-swap="innerHTML">
+    {% if show_passed %}
+      <a href="/items" role="button" class="secondary outline">Back to active</a>
+    {% else %}
+      <a href="/items?show=passed" role="button" class="secondary outline">Show passed</a>
+    {% endif %}
+  </div>
 
   <div id="results">
     {% include "items_results.html" %}

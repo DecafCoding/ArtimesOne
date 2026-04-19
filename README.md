@@ -23,10 +23,19 @@ corpus through a web UI. Designed to run locally on your own machine.
   - `/chat` — conversational interface with SSE streaming, tool-call indicators, and persisted history
   - `/rollups` — browse agent-authored rollup documents with topic filtering
   - `/rollups/{id}` — rollup detail with body text and cited source items
-- **Chat agent** — pydantic-ai agent with 15 tools (9 read, 3 write, 3 source-management) for querying the corpus, creating rollup syntheses, tagging items, and managing sources — all with streaming responses
+- **Chat agent** — pydantic-ai agent with 17 tools (11 read, 3 write, 3 source-management) for querying the corpus, creating rollup syntheses, tagging items, and managing sources — all with streaming responses
 - **Telegram surface** — same chat agent reachable from a phone via a Telegram bot. Webhook mode, ~750 ms throttled edit-in-place streaming, markdown → Telegram-HTML conversion, paragraph-aware splitting under Telegram's 4096-char limit, single-user guard, `/start` welcome, and a phone-friendly prompt addendum for shorter replies
 - **Manual retry** — retry button on item detail pages for items that failed automatic recovery, resetting status and clearing the last-error metadata so the next scheduled run picks them up
 - **Entry point** — `python -m artimesone` starts FastAPI + scheduler in one process
+
+## v1.1 — Pass, libraries, projects
+
+Triage and curation layered onto v1 without touching the collectors:
+
+- **Pass** — a one-click dismissal on any item card. Passed items disappear from the dashboard, `/items`, topic views, source views, and default chat-agent queries. Nothing is deleted — `/items?show=passed` surfaces dismissed items again with an un-pass affordance.
+- **Libraries** — exclusive consumption buckets (e.g. "Entertainment", "Education"). An item belongs to at most one library at a time; moving it between libraries is atomic. Filing an item into a library hides it from the main feed. Available at `/libraries` and `/libraries/{id}`.
+- **Projects** — non-exclusive research collections (e.g. "AI Skills") that stage items for later synthesis into a rollup. Project membership does **not** hide the item — projects are active work you still want to see in the feed. Available at `/projects` and `/projects/{id}`.
+- **Chat agent** — read-only access to lists via `get_lists` and `get_list`. The agent can summarize what's in a project but cannot create lists or add items — list management remains user-only through the web UI.
 
 ## Installation
 
@@ -115,12 +124,13 @@ artimesone/
     0001_initial.sql   # Full v1 schema
   collectors/          # Collector protocol + registry
     youtube/           # YouTube Data API + Apify transcript client + channel collector
-  agents/              # pydantic-ai agents (summarizer, chat agent + 15 tools)
+  agents/              # pydantic-ai agents (summarizer, chat agent + 17 tools)
+  lists.py             # Shared data layer for libraries + projects
   pipeline/            # Processing pipelines (summarize: transcript → summary + tags)
   telegram/            # Telegram chat surface (webhook, streaming, markdown → HTML)
   web/
     filters.py         # Jinja2 template filters (duration, dates, text)
-    routes/            # FastAPI routers (dashboard, items, topics, sources, runs, chat, rollups)
+    routes/            # FastAPI routers (dashboard, items, topics, sources, runs, chat, rollups, libraries, projects)
     templates/         # Jinja2 templates (Pico CSS + HTMX)
     static/            # Static assets (custom CSS)
 tests/                 # pytest + respx, zero live API calls

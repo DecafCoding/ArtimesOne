@@ -2,61 +2,6 @@
 {% block title %}Dashboard — ArtimesOne{% endblock %}
 {% block content %}
 
-{# ── Item card macro ──────────────────────────────────────────── #}
-{% macro render_item_card(item) %}
-  <div class="item-card">
-    {# Thumbnail #}
-    {% if item.thumbnail_url %}
-      <img class="item-thumb" src="{{ item.thumbnail_url }}" alt="" loading="lazy">
-    {% else %}
-      <div class="item-thumb-placeholder"></div>
-    {% endif %}
-
-    <div class="item-body">
-      {# Title — links to detail for summarized, YouTube for skipped #}
-      <h3>
-        {% if item.status == 'skipped_too_long' %}
-          <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
-        {% else %}
-          <a href="/items/{{ item.id }}">{{ item.title }}</a>
-        {% endif %}
-      </h3>
-
-      {# Metadata line #}
-      <div class="item-meta">
-        <span><a href="/sources/{{ item.source_id }}">{{ item.source_name }}</a></span>
-        {% if item.duration_seconds %}
-          <span>{{ item.duration_seconds | format_duration }}</span>
-        {% endif %}
-        {% if item.published_at %}
-          <span>{{ item.published_at | relative_date }}</span>
-        {% endif %}
-      </div>
-
-      {# Summary or badge #}
-      {% if item.status == 'skipped_too_long' %}
-        <span class="badge-too-long">Too long</span>
-      {% elif item.summary %}
-        <p class="item-summary">{{ item.summary | first_paragraph }}</p>
-      {% endif %}
-
-      {# Topic chips #}
-      {% if item.topics %}
-        <div class="topic-chips">
-          {% for topic in item.topics %}
-            <a class="topic-chip" href="/topics/{{ topic.slug }}">{{ topic.name }}</a>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      {# YouTube link #}
-      {% if item.url %}
-        <small><a href="{{ item.url }}" class="external-link" target="_blank" rel="noopener">Watch on YouTube</a></small>
-      {% endif %}
-    </div>
-  </div>
-{% endmacro %}
-
   <h1>Dashboard</h1>
 
   {% if not has_items %}
@@ -71,7 +16,7 @@
         <section class="topic-group">
           <h2><a href="/topics/{{ group.slug }}">{{ group.name }}</a></h2>
           {% for item in group.entries %}
-            {{ render_item_card(item) }}
+            {% include "_item_card.html" %}
           {% endfor %}
         </section>
       {% endfor %}
@@ -86,7 +31,7 @@
         <section class="topic-group">
           <h2><a href="/topics/{{ group.slug }}">{{ group.name }}</a></h2>
           {% for item in group.entries %}
-            {{ render_item_card(item) }}
+            {% include "_item_card.html" %}
           {% endfor %}
         </section>
       {% endfor %}
