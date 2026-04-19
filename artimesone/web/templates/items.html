@@ -3,8 +3,8 @@
 {% block content %}
   <h1>Items{% if show_passed %} — Passed{% endif %}</h1>
 
-  <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem;">
-    <input type="search" name="q" placeholder="Search items..." style="flex:1; margin:0;"
+  <div class="inline-form" style="margin-bottom:1rem;">
+    <input type="search" name="q" placeholder="Search items..."
            value="{{ q }}"
            hx-get="/items/search{% if show_passed %}?show=passed{% endif %}"
            hx-trigger="keyup changed delay:300ms"

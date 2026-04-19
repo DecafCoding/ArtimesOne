@@ -11,12 +11,14 @@
   <h2>Sources</h2>
   {% if sources %}
   <table class="table-compact">
-    <thead><tr><th>Name</th><th>Type</th><th>Enabled</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Name</th><th>Type</th><th>Items</th><th>Last check</th><th>Enabled</th><th>Actions</th></tr></thead>
     <tbody>
     {% for s in sources %}
       <tr>
         <td><a href="/sources/{{ s.id }}">{{ s.name }}</a></td>
         <td>{{ s.type }}</td>
+        <td>{{ s.item_count }}</td>
+        <td>{{ s.last_check_at | relative_time if s.last_check_at else "never" }}</td>
         <td>
           {% if s.enabled %}
             <form method="post" action="/sources/{{ s.id }}/disable" style="display:inline">

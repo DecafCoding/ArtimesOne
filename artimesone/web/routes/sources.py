@@ -30,7 +30,12 @@ def _render_sources(
 ) -> HTMLResponse:
     """Fetch all sources and render the sources page."""
     rows = conn.execute(
-        "SELECT id, type, external_id, name, enabled FROM sources ORDER BY id"
+        """
+        SELECT s.id, s.type, s.external_id, s.name, s.enabled, s.last_check_at,
+               (SELECT COUNT(*) FROM items WHERE source_id = s.id) AS item_count
+        FROM sources s
+        ORDER BY s.id
+        """
     ).fetchall()
     sources = [dict(r) for r in rows]
     templates = request.app.state.templates

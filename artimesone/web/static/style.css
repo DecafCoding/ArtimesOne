@@ -1,5 +1,67 @@
 /* ArtimesOne — custom styles layered on top of Pico CSS classless. */
 
+/* ── App layout: left sidebar + main ──────────────────────────────── */
+.app-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.app-sidebar {
+  flex: 0 0 200px;
+  padding: 1rem 0 1rem 1rem;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+}
+
+.app-sidebar nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.app-sidebar nav li {
+  margin: 0;
+  padding: 0;
+}
+
+.app-sidebar nav a {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  text-decoration: none;
+  border-radius: 4px;
+  color: var(--pico-color);
+}
+
+.app-sidebar nav a:hover {
+  background: var(--pico-muted-border-color);
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column;
+    gap: 0;
+  }
+  .app-sidebar {
+    flex: 0 0 auto;
+    width: 100%;
+    position: static;
+    padding: 0.5rem 1rem;
+  }
+  .app-sidebar nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+}
+
 /* ── Body text sizing (matches items-page video-card-summary) ─────── */
 main p,
 main td,
@@ -230,7 +292,8 @@ main textarea {
   height: auto;
 }
 
-.inline-form > button {
+.inline-form > button,
+.inline-form > a[role="button"] {
   flex: 0 0 auto;
   width: auto;
   margin: 0;
