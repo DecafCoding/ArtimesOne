@@ -1,5 +1,16 @@
 /* ArtimesOne — custom styles layered on top of Pico CSS classless. */
 
+/* ── Small form controls (Bootstrap btn-sm sizing, non-table) ─────── */
+main button:not(.btn-compact),
+main a[role="button"],
+main input:not([type="hidden"]),
+main select,
+main textarea {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 /* ── Topic group headings ─────────────────────────────────────────── */
 .topic-group h2 {
   margin-top: 1.5rem;
@@ -205,9 +216,6 @@
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
   height: auto;
 }
 
@@ -216,9 +224,6 @@
   width: auto;
   margin: 0;
   white-space: nowrap;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
 }
 
 .btn-compact {
