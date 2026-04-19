@@ -13,7 +13,6 @@
     <nav>
       <ul><li><strong><a href="/">ArtimesOne</a></strong></li></ul>
       <ul>
-        <li><a href="/">Dashboard</a></li>
         <li><a href="/items">Items</a></li>
         <li><a href="/topics">Topics</a></li>
         <li><a href="/rollups">Rollups</a></li>
@@ -23,8 +22,24 @@
       </ul>
     </nav>
   </header>
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
+  <div class="app-layout">
+    <aside class="app-sidebar">
+      <nav>
+        <ul>
+          <li><a href="/libraries">Library</a></li>
+          <li><a href="/projects">Projects</a></li>
+          <li><a href="/items">Items</a></li>
+          <li><a href="/topics">Topics</a></li>
+          <li><a href="/rollups">Rollups</a></li>
+          <li><a href="/chat">Chat</a></li>
+          <li><a href="/sources">Sources</a></li>
+          <li><a href="/runs">Runs</a></li>
+        </ul>
+      </nav>
+    </aside>
+    <main class="app-main container">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
 </body>
 </html>
