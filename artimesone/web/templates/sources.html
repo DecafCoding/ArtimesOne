@@ -2,7 +2,7 @@
 {% block content %}
   {% if message %}<article>{{ message }}</article>{% endif %}
   <h2>Add a YouTube Channel</h2>
-  <form method="post" action="/sources" class="sources-add-form">
+  <form method="post" action="/sources" class="inline-form">
     <input name="external_id" placeholder="Channel ID" aria-label="Channel ID" required>
     <input name="name" placeholder="Display Name" aria-label="Display Name" required>
     <input type="hidden" name="type" value="youtube_channel">

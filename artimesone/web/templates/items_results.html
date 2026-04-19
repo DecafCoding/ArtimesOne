@@ -5,49 +5,7 @@
 {% else %}
   <div class="video-grid">
     {% for item in items %}
-      <article class="video-card">
-        <div class="video-card-thumb">
-          {% if item.thumbnail_url %}
-            <img src="{{ item.thumbnail_url }}" alt="" loading="lazy">
-          {% endif %}
-          {% if item.duration_seconds %}
-            <span class="video-card-duration">{{ item.duration_seconds | format_duration }}</span>
-          {% endif %}
-        </div>
-
-        <div class="video-card-body">
-          <h3 class="video-card-title">
-            {% if item.status == 'skipped_too_long' %}
-              <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
-            {% else %}
-              <a href="/items/{{ item.id }}">{{ item.title }}</a>
-            {% endif %}
-          </h3>
-
-          <div class="video-card-meta">
-            <span><a href="/sources/{{ item.source_id }}">{{ item.source_name }}</a></span>
-            {% if item.published_at %}
-              <span>{{ item.published_at | relative_date }}</span>
-            {% endif %}
-            {% if item.view_count %}
-              <span>{{ item.view_count | format_count }} views</span>
-            {% endif %}
-            {% if item.like_count %}
-              <span>{{ item.like_count | format_count }} likes</span>
-            {% endif %}
-          </div>
-
-          {% if item.search_snippet %}
-            <p class="video-card-summary">{{ item.search_snippet | safe }}</p>
-          {% elif item.status == 'skipped_too_long' %}
-            <p class="video-card-summary"><span class="badge-too-long">Too long</span></p>
-          {% elif item.summary %}
-            <p class="video-card-summary">{{ item.summary | first_paragraph | truncate(200) }}</p>
-          {% endif %}
-
-          {% include "_item_actions.html" %}
-        </div>
-      </article>
+      {% include "_video_card.html" %}
     {% endfor %}
   </div>
 {% endif %}

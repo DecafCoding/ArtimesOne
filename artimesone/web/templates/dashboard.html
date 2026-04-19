@@ -15,9 +15,11 @@
       {% for slug, group in today_groups.items() %}
         <section class="topic-group">
           <h2><a href="/topics/{{ group.slug }}">{{ group.name }}</a></h2>
-          {% for item in group.entries %}
-            {% include "_item_card.html" %}
-          {% endfor %}
+          <div class="video-grid">
+            {% for item in group.entries %}
+              {% include "_video_card.html" %}
+            {% endfor %}
+          </div>
         </section>
       {% endfor %}
     {% endif %}
@@ -30,9 +32,11 @@
       {% for slug, group in rest_groups.items() %}
         <section class="topic-group">
           <h2><a href="/topics/{{ group.slug }}">{{ group.name }}</a></h2>
-          {% for item in group.entries %}
-            {% include "_item_card.html" %}
-          {% endfor %}
+          <div class="video-grid">
+            {% for item in group.entries %}
+              {% include "_video_card.html" %}
+            {% endfor %}
+          </div>
         </section>
       {% endfor %}
     {% endif %}
