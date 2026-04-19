@@ -205,6 +205,10 @@
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.925rem;
+  line-height: 1.35;
+  height: auto;
 }
 
 .sources-add-form > button {
@@ -212,6 +216,9 @@
   width: auto;
   margin: 0;
   white-space: nowrap;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.925rem;
+  line-height: 1.35;
 }
 
 .btn-compact {
