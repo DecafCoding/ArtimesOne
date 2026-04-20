@@ -10,17 +10,12 @@ h3 { font-size: 1.1rem; }
   margin-top: 1.25rem;
 }
 .sidebar-section h3 {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--pico-muted-color);
   margin: 0 0 0.5rem 0;
 }
 .sidebar-form input,
 .sidebar-form button {
   width: 100%;
   margin-bottom: 0.4rem;
-  font-size: 0.85rem;
 }
 
 /* ── Header: align brand with sidebar's left padding ──────────────── */
@@ -104,12 +99,12 @@ main dt {
   line-height: 1.4;
 }
 
-/* ── Small form controls (Bootstrap btn-sm sizing, non-table) ─────── */
-main button:not(.btn-compact),
-main a[role="button"],
-main input:not([type="hidden"]),
-main select,
-main textarea {
+/* ── Form controls: single default size (btn-table overrides in tables) ── */
+button:not(.btn-table),
+a[role="button"]:not(.btn-table),
+input:not([type="hidden"]),
+select,
+textarea {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
   line-height: 1.5;
@@ -331,10 +326,11 @@ main textarea {
   white-space: nowrap;
 }
 
-.btn-compact {
+/* Table button: compact sizing for action buttons inside .table-compact */
+.btn-table {
   margin: 0;
-  padding: 0.3rem 0.8rem;
-  font-size: 0.85rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
   line-height: 1.2;
 }
 
@@ -371,11 +367,6 @@ main textarea {
 .table-compact .badge-run-running {
   font-size: 0.72rem;
   padding: 0.1rem 0.4rem;
-}
-
-.table-compact .btn-compact {
-  padding: 0.2rem 0.6rem;
-  font-size: 0.75rem;
 }
 
 /* ── Video card grid (items list) ─────────────────────────────────── */
