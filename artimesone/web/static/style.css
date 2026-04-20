@@ -1,5 +1,36 @@
 /* ArtimesOne — custom styles layered on top of Pico CSS classless. */
 
+/* ── Headings: tighter scale than Pico defaults ───────────────────── */
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.1rem; }
+
+/* ── Sidebar per-page sections ────────────────────────────────────── */
+.sidebar-section {
+  margin-top: 1.25rem;
+  padding: 0 0.75rem 0 1rem;
+}
+.sidebar-section h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pico-muted-color);
+  margin: 0 0 0.5rem 0;
+}
+.sidebar-form input,
+.sidebar-form button {
+  width: 100%;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+}
+
+/* ── Header: align brand with sidebar's left padding ──────────────── */
+header.container {
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: 1rem;
+}
+
 /* ── App layout: left sidebar + main ──────────────────────────────── */
 .app-layout {
   display: flex;

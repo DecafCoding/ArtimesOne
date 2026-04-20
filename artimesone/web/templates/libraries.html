@@ -1,18 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Libraries — ArtimesOne{% endblock %}
+
+{% block sidebar_extra %}
+  <section class="sidebar-section">
+    <h3>New Library</h3>
+    <form method="post" action="/libraries" class="sidebar-form">
+      <input name="name" placeholder="Name (e.g. Entertainment)" aria-label="Library name" required>
+      <button type="submit">Create</button>
+    </form>
+  </section>
+{% endblock %}
+
 {% block content %}
   <h1>Libraries</h1>
   <p><small>Libraries are exclusive consumption buckets. Filed items disappear from the main feed.</small></p>
 
   {% if message %}<article>{{ message }}</article>{% endif %}
 
-  <h2>Create a library</h2>
-  <form method="post" action="/libraries" class="inline-form">
-    <input name="name" placeholder="Name (e.g. Entertainment)" aria-label="Library name" required>
-    <button type="submit">Create library</button>
-  </form>
-
-  <h2>All libraries</h2>
   {% if libraries %}
     <table class="table-compact">
       <thead><tr><th>Name</th><th>Items</th><th>Actions</th></tr></thead>
