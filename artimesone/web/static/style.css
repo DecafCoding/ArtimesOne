@@ -100,12 +100,14 @@ main dt {
 }
 
 /* ── Form controls: single default size (btn-table overrides in tables) ── */
-/* Input selector mirrors Pico's compound :not() to beat its specificity. */
+/* Input selector mirrors Pico's compound :not() to beat its specificity.    */
+/* height: auto is required — Pico sets an explicit calc() height on inputs. */
 button:not(.btn-table),
 a[role="button"]:not(.btn-table),
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
 select,
 textarea {
+  height: auto;
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
   line-height: 1.5;
