@@ -100,9 +100,10 @@ main dt {
 }
 
 /* ── Form controls: single default size (btn-table overrides in tables) ── */
+/* Input selector mirrors Pico's compound :not() to beat its specificity. */
 button:not(.btn-table),
 a[role="button"]:not(.btn-table),
-input:not([type="hidden"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
 select,
 textarea {
   padding: 0.25rem 0.5rem;
