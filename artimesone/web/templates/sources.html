@@ -22,18 +22,18 @@
         <td>
           {% if s.enabled %}
             <form method="post" action="/sources/{{ s.id }}/disable" style="display:inline">
-              <button type="submit" class="btn-compact btn-toggle-on">Disable</button>
+              <button type="submit" class="btn-table btn-toggle-on">Disable</button>
             </form>
           {% else %}
             <form method="post" action="/sources/{{ s.id }}/enable" style="display:inline">
-              <button type="submit" class="btn-compact btn-toggle-off">Enable</button>
+              <button type="submit" class="btn-table btn-toggle-off">Enable</button>
             </form>
           {% endif %}
         </td>
         <td>
           <form method="post" action="/sources/{{ s.id }}/delete" style="display:inline"
                 onsubmit="return confirm('Delete this source?');">
-            <button type="submit" class="btn-compact contrast">Delete</button>
+            <button type="submit" class="btn-table contrast">Delete</button>
           </form>
         </td>
       </tr>
