@@ -496,6 +496,33 @@ textarea {
   align-items: center;
 }
 
+/* ── Add to List modal ────────────────────────────────────────────── */
+#add-to-list-modal article {
+  max-width: 420px;
+  width: 100%;
+}
+
+#add-to-list-modal label {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+#add-to-list-modal select {
+  margin-top: 0.25rem;
+}
+
+.add-to-list-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.add-to-list-footer button {
+  width: auto;
+  margin: 0;
+}
+
 /* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .item-card {
