@@ -1,0 +1,40 @@
+{# Shared "Add to List" modal. Include once per page that renders item cards.
+   Expects:
+     libraries — list of {id, name}
+     projects  — list of {id, name}
+   The item id is injected by add-to-list.js when the modal opens.
+#}
+<dialog id="add-to-list-modal">
+  <article>
+    <header>
+      <h3 style="margin:0;">Add to List</h3>
+    </header>
+
+    <form id="add-to-list-form">
+      <label>
+        Library
+        <select name="library_id" id="add-to-list-library">
+          <option value="">— Select —</option>
+          {% for lib in libraries %}
+            <option value="{{ lib.id }}">{{ lib.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        Project
+        <select name="project_id" id="add-to-list-project">
+          <option value="">— Select —</option>
+          {% for proj in projects %}
+            <option value="{{ proj.id }}">{{ proj.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <footer class="add-to-list-footer">
+        <button type="button" class="secondary" id="add-to-list-cancel">Cancel</button>
+        <button type="submit" id="add-to-list-submit" disabled>Add Video</button>
+      </footer>
+    </form>
+  </article>
+</dialog>
