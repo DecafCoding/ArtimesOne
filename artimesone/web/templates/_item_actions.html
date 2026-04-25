@@ -7,7 +7,7 @@
 #}
 <div class="item-actions">
   {% if item.url %}
-    <small><a href="{{ item.url }}" class="external-link" target="_blank" rel="noopener">Watch on YouTube</a></small>
+    <a href="{{ item.url }}" role="button" class="secondary outline" target="_blank" rel="noopener">YouTube</a>
   {% endif %}
 
   {% if libraries is defined or projects is defined %}
@@ -15,7 +15,7 @@
             class="add-to-list-btn secondary outline"
             data-item-id="{{ item.id }}"
             data-current-library-id="{{ current_library_id or '' }}">
-      Add to List
+      List
     </button>
   {% endif %}
 
