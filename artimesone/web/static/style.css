@@ -262,6 +262,23 @@ textarea {
 
 .item-actions .inline-action {
   margin: 0;
+  display: inline-flex;
+}
+
+.item-actions .inline-action button {
+  width: auto;
+}
+
+.btn-danger {
+  --pico-background-color: var(--pico-del-color, #d33);
+  --pico-border-color: var(--pico-del-color, #d33);
+  --pico-color: #fff;
+}
+
+.btn-danger:hover,
+.btn-danger:focus {
+  --pico-background-color: #b22;
+  --pico-border-color: #b22;
 }
 
 /* ── Chat ─────────────────────────────────────────────────────────── */

@@ -21,11 +21,11 @@
 
   {% if item.passed_at %}
     <form method="post" action="/items/{{ item.id }}/unpass" class="inline-action">
-      <button type="submit" class="secondary">Un-pass</button>
+      <button type="submit" class="btn-danger">Un-pass</button>
     </form>
   {% else %}
     <form method="post" action="/items/{{ item.id }}/pass" class="inline-action">
-      <button type="submit" class="secondary outline">Pass</button>
+      <button type="submit" class="btn-danger">Pass</button>
     </form>
   {% endif %}
 </div>
