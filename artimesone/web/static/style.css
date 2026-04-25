@@ -260,8 +260,13 @@ textarea {
   gap: 0.5rem;
 }
 
-.item-actions .inline-action {
+.item-actions > *,
+.item-actions button,
+.item-actions a[role="button"] {
   margin: 0;
+}
+
+.item-actions .inline-action {
   display: inline-flex;
 }
 
