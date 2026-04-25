@@ -253,6 +253,17 @@ textarea {
   font-size: 0.8em;
 }
 
+.item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.item-actions .inline-action {
+  margin: 0;
+}
+
 /* ── Chat ─────────────────────────────────────────────────────────── */
 #chat-container {
   max-width: 800px;
